@@ -37,6 +37,7 @@ button:disabled{opacity:.4;cursor:default}
 table{width:100%;border-collapse:collapse;margin:10px 0}td{padding:6px 2px;border-bottom:1px solid #eee}td.n{text-align:right;font-weight:700}
 .tag{background:#d8321f;color:#fff;font-weight:900;padding:2px 10px;border-radius:8px;font-size:15px;pointer-events:none}
 [hidden]{display:none!important}
+#bgmBtn{position:fixed;right:12px;bottom:76px;z-index:2100;min-height:40px;padding:0 14px;border-radius:99px;box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:14px}
 .chal{background:#fff3f0;border:1.5px solid #d8321f;border-radius:12px;padding:12px;margin-bottom:12px}
 .vs{font-size:20px;font-weight:900;color:#d8321f}
 input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;border:1.5px solid #ccc}
@@ -48,23 +49,46 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 </style></head><body>
 <div id="app">
 <header><b><em id="qName">—</em><small id="qWard"></small> を囲め</b><span class="sub" id="qNo"></span><span id="timer" class="timer">3:00</span><span class="sp"></span>
-<select id="layer" aria-label="地図の種類"><option value="liberty">地図：カラフル</option><option value="positron">地図：シンプル</option><option value="bright">地図：くっきり</option><option value="photo">航空写真＋道路名</option><option value="gsistd">地理院地図（町名あり・かんたん）</option><option value="gsipale">地理院 淡色（町名あり・かんたん）</option><option value="old">昔の航空写真（1974〜78年）</option></select></header>
+<select id="layer" aria-label="地図の種類"><option value="liberty">地図：カラフル</option><option value="positron">地図：シンプル</option><option value="bright">地図：くっきり</option><option value="photo">航空写真＋道路名</option><option value="old">昔の航空写真（1974〜78年）</option></select></header>
 <div id="mapwrap"><div id="map"></div><div id="pop" hidden></div></div>
 <footer><span id="msg">境界の角をクリックして点を打つ。最初の点を押すと閉じます。</span>
 <button id="undo">1つ戻す</button><button id="clear">全部消す</button><button class="go" id="ok" disabled>これで決定</button></footer>
 </div>
-<div id="ov"><div class="card" id="card"><h1>地図を読み込み中…</h1></div></div>
+<button id="bgmBtn" type="button">♪ BGM</button><div id="ov"><div class="card" id="card"><h1>地図を読み込み中…</h1></div></div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
 {
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 const REG={kagoshima:{c:[130.55,31.58],local:['桜島級の土地勘','天文館の主','市電ユーザー']},tokyo:{c:[139.74,35.69],local:['江戸っ子の土地勘','山手線の主','都バスユーザー']},osaka:{c:[135.51,34.68],local:['太閤級の土地勘','ミナミの主','環状線ユーザー']}};
-const CATS=[['kgsc','kagoshima','鹿児島中心街（鹿児島中央駅から5km）'],['kgs','kagoshima','鹿児島市（市街地・住宅街・団地）'],['tky','tokyo','東京中心街（山手線の内側）'],['tk23','tokyo','東京23区'],['osc','osaka','大阪中心街（大阪環状線の内側）']];
+const CATS=[['kgsc','kagoshima','鹿児島中心街（鹿児島中央駅から5km）'],['kgs','kagoshima','鹿児島市（市街地・住宅街・団地）'],['tky','tokyo','東京中心街（山手線の内側の有名な地名）'],['tk23','tokyo','東京23区（23区と有名な地名）'],['osc','osaka','大阪（24区と有名な地名）']];
 const catOf=id=>CATS.find(c=>c[0]===id)||CATS[0];
 const DATA={};// region -> {keys:[], map:{}, cat:{id:[keys]}}
 const loadRegion=r=>DATA[r]?Promise.resolve(DATA[r]):fetch('towns-'+r+'.json').then(x=>x.json()).then(rows=>{const d={keys:[],map:{},cat:{}};
   for(const [k,x,y,s,p,c,cs] of rows){d.keys.push(k);d.map[k]={x,y,s,p,c};for(const id of cs.split(' ').filter(Boolean))(d.cat[id]=d.cat[id]||[]).push(k)}return DATA[r]=d});
+const NA=['坂道の','三丁目の','回覧板の','団地の','自治会の','袋小路の','角地の','公民館の','路地裏の','境界線の','バス停の','商店街の','高台の','裏通りの','町内会の'];
+const NB=['主','番人','達人','住人','ご隠居','見習い','名人','さすらい人','案内人','守り神','常連','新入り'];
+const randName=()=>NA[Math.random()*NA.length|0]+NB[Math.random()*NB.length|0];
+
+// ---- BGM（WebAudioで生成）----
+const BGM={ctx:null,master:null,timer:null,song:null,step:0,next:0,on:true};
+try{BGM.on=localStorage.getItem('dgBgm')!=='off'}catch(e){}
+const N=n=>440*Math.pow(2,(n-69)/12);
+const SONGS={
+  title:{bpm:118,lead:[72,0,76,79,0,76,72,0,74,0,77,81,0,77,74,0,76,0,79,84,0,79,76,0,77,76,74,72,0,67,0,0],bass:[48,48,55,55,52,52,55,55,50,50,57,57,53,53,57,57,52,52,59,59,55,55,59,59,53,53,55,55,48,48,43,43],wave:'square'},
+  game:{bpm:132,lead:[69,0,72,0,76,0,72,0,71,0,74,0,77,0,74,0,72,0,76,0,79,0,76,0,74,72,71,69,68,0,64,0],bass:[45,0,45,0,45,0,52,0,43,0,43,0,43,0,50,0,48,0,48,0,48,0,55,0,52,0,52,0,40,0,44,0],wave:'triangle'}
+};
+function bgmInit(){if(BGM.ctx)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;BGM.ctx=new C();BGM.master=BGM.ctx.createGain();BGM.master.gain.value=.06;BGM.master.connect(BGM.ctx.destination)}
+function tone(f,t,d,type,vol){const c=BGM.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(BGM.master);o.start(t);o.stop(t+d+.02)}
+function bgmTick(){const S=SONGS[BGM.song];if(!S||!BGM.ctx)return;const sp=60/S.bpm/2;
+  while(BGM.next<BGM.ctx.currentTime+.2){const i=BGM.step%S.lead.length,t=BGM.next;
+    if(S.lead[i])tone(N(S.lead[i]),t,sp*.9,S.wave,.8);if(S.bass[i])tone(N(S.bass[i]),t,sp*.95,'triangle',1);
+    if(i%4===0)tone(90,t,.08,'sine',1.4);if(i%4===2)tone(2200,t,.03,'square',.15);
+    BGM.next+=sp;BGM.step++}}
+function bgmPlay(name){BGM.song=name;if(!BGM.on)return;bgmInit();if(!BGM.ctx)return;BGM.ctx.resume();BGM.step=0;BGM.next=BGM.ctx.currentTime+.05;clearInterval(BGM.timer);BGM.timer=setInterval(bgmTick,60)}
+function bgmStop(){clearInterval(BGM.timer);BGM.timer=null}
+function bgmToggle(){BGM.on=!BGM.on;try{localStorage.setItem('dgBgm',BGM.on?'on':'off')}catch(e){}$('bgmBtn').textContent=BGM.on?'♪ BGM オン':'♪ BGM オフ';BGM.on?bgmPlay(BGM.song||'title'):bgmStop()}
+document.addEventListener('pointerdown',()=>{if(BGM.on&&!BGM.timer&&BGM.song)bgmPlay(BGM.song)},{once:false});
 const disp=k=>k.split(' ').pop(),ward=k=>k.includes(' ')?k.split(' ')[0]:'';
 const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/'+((()=>{try{const v=localStorage.getItem('dgMap');return v==='positron'||v==='bright'?v:'liberty'}catch(e){return 'liberty'}})()),center:REG.kagoshima.c,zoom:13,doubleClickZoom:false,dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true,customAttribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a> | 境界：<a href="https://github.com/geolonia/japanese-boundaries" target="_blank">Geolonia</a>'}});
 map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-left');
@@ -72,7 +96,11 @@ map.touchZoomRotate.disableRotation();
 const BASE='https://raw.githubusercontent.com/geolonia/japanese-boundaries/master/data/japan/';
 const TOWNS={};
 const files=t=>t.c.split(';').flatMap(g=>{const [a,b]=g.split(':');return b.split(',').map(s=>BASE+t.p+'/'+a+s+'.geojson')});
-const loadTown=k=>{if(TOWNS[k])return Promise.resolve(TOWNS[k]);const t=DATA[region].map[k];return Promise.all(files(t).map(u=>fetch(u).then(r=>r.json()))).then(fs=>{const rings=[];
+const WARDS={};
+const loadWards=r=>WARDS[r]||(WARDS[r]=fetch('wards-'+r+'.json').then(x=>x.json()));
+const loadTown=k=>{if(TOWNS[k])return Promise.resolve(TOWNS[k]);const t=DATA[region].map[k];
+  if(t.p==='W')return loadWards(region).then(w=>TOWNS[k]=w[k]);
+  return Promise.all(files(t).map(u=>fetch(u).then(r=>r.json()))).then(fs=>{const rings=[];
   for(const d of fs){const g=(d.features?d.features[0]:d).geometry,polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;
     for(const p of polys)for(const r of p)rings.push(r.slice(0,-1).map(c=>[c[1],c[0]]))}
   return TOWNS[k]=rings})};
@@ -88,7 +116,7 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random(
 const fc=f=>({type:'FeatureCollection',features:f});
 const ringLL=r=>{const c=r.map(p=>[p[1],p[0]]);c.push(c[0]);return c};
 
-let mapStyle='liberty',ansData=fc([]),nbData=fc([]),nbOn=false;try{mapStyle=localStorage.getItem('dgMap')||'liberty'}catch(e){}
+let mapStyle='liberty',ansData=fc([]),nbData=fc([]),nbOn=false;try{mapStyle=localStorage.getItem('dgMap')||'liberty'}catch(e){}if(/^gsi/.test(mapStyle))mapStyle='liberty';
 const OFM='https://tiles.openfreemap.org/styles/';
 const RASTER={photo:['https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',18],gsistd:['https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',18],gsipale:['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',18],old:['https://cyberjapandata.gsi.go.jp/xyz/gazo1/{z}/{x}/{y}.jpg',17]};
 function setupLayers(){
@@ -118,19 +146,19 @@ function setupLayers(){
 let started=false;
 map.on('style.load',()=>{setupLayers();if(!started){started=true;startScreen()}});
 const styleUrl=v=>OFM+(v==='positron'||v==='bright'?v:'liberty');
-$('layer').value=mapStyle;
+$('layer').value=mapStyle;$('bgmBtn').textContent=BGM.on?'♪ BGM オン':'♪ BGM オフ';$('bgmBtn').onclick=bgmToggle;
 $('layer').onchange=e=>{mapStyle=e.target.value;try{localStorage.setItem('dgMap',mapStyle)}catch(x){}map.setStyle(styleUrl(mapStyle),{diff:false})};
 
-function begin(c,list,m){cat=c;region=catOf(c)[1];mode=m;$('ov').hidden=true;$('qName').textContent='読み込み中…';
+function begin(c,list,m){bgmPlay('game');cat=c;region=catOf(c)[1];mode=m;$('ov').hidden=true;$('qName').textContent='読み込み中…';
   loadRegion(region).then(d=>{qs=typeof list==='function'?list(d):list;qi=0;results=[];newRound()}).catch(()=>{$('ov').hidden=false;$('card').innerHTML='<h1>町のデータを読み込めませんでした</h1><p>ページを開き直してください。</p>'})}
 function startScreen(){
-  $('ov').hidden=false;
+  $('ov').hidden=false;BGM.song='title';if(BGM.timer)bgmPlay('title');
   const b=best[lastCat];
   $('card').innerHTML=`<h1>Danchi Guessor</h1><p style="margin:-4px 0 8px;font-weight:700;color:#d8321f">ダンチゲッサー｜団地の境界線当てゲーム</p>
   <p>道路やお店・学校の名前を手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>。</p>
   <div class="opt"><label for="setSel">出題エリア</label><select id="setSel">${CATS.map(c=>`<option value="${c[0]}"${c[0]===lastCat?' selected':''}>${c[2]}</option>`).join('')}</select></div>
   <div class="opt"><label for="nSel">問題数</label><select id="nSel">${['5','10','20'].map(n=>`<option${n===lastN?' selected':''}>${n}</option>`).join('')}</select></div>
-  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><input id="nm0" maxlength="20" value="${esc(myName)}" placeholder="例：武岡の主"></div>
+  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName||randName())}" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">別の名前</button></div></div>
   <p id="bestLine">${b?`このエリアの最高：1問あたり平均${b}点`:''}</p>
   <button class="go" id="go" style="width:100%">スタート</button>
   <button id="rankBtn" style="width:100%;margin-top:10px">ランキングを見る</button>
@@ -139,6 +167,7 @@ function startScreen(){
   if(challenge){$('card').insertAdjacentHTML('afterbegin',`<div class="chal"><b>挑戦状が届きました</b><br>${challenge.name?esc(challenge.name)+'さんから':'友だちから'}・${esc(catOf(challenge.cat)[2])}・${challenge.idx.length}問${challenge.score!=null?`・相手は<b>${challenge.score}点</b>`:''}<br><button class="go" id="goChal" style="width:100%;margin-top:8px">この問題で勝負する</button></div>`);
     $('goChal').onclick=()=>begin(challenge.cat,d=>challenge.idx.map(i=>d.keys[i]).filter(Boolean),'chal')}
   $('rankBtn').onclick=()=>showRanking($('setSel').value,+$('nSel').value);
+  $('reroll').onclick=()=>{$('nm0').value=randName()};
   const needName=()=>{const v=$('nm0').value.trim().slice(0,20);if(!v){$('nm0').focus();$('nm0').style.borderColor='#d8321f';$('nm0').placeholder='ニックネームを入れてからスタート';return false}myName=v;try{localStorage.setItem('kgsName',v)}catch(e){}return true};
   if($('goChal')){const g=$('goChal').onclick;$('goChal').onclick=()=>{if(needName())g()}}
   $('go').onclick=()=>{if(!needName())return;const c=$('setSel').value,n=$('nSel').value;lastCat=c;lastN=n;try{localStorage.setItem('dgCat',c);localStorage.setItem('dgN',n)}catch(e){}
@@ -194,8 +223,8 @@ const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function countUp(el,to){if(reduce){el.textContent=to;return}const t0=performance.now(),d=900;const f=t=>{const p=Math.min(1,(t-t0)/d),e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e);if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
 $('ok').onclick=()=>{if(revealed){qi++;return qi<qs.length?newRound():finish()}submit(false)};
 function showNeighbors(k){
-  const M=DATA[region].map,{x,y,s:sz}=M[k],R=Math.max(sz*1.4,.008),cos=Math.cos(y*Math.PI/180);
-  const near=Object.keys(M).filter(n=>n!==k&&Math.hypot((M[n].x-x)*cos,M[n].y-y)<R+M[n].s*.5).sort((a,b)=>Math.hypot((M[a].x-x)*cos,M[a].y-y)-Math.hypot((M[b].x-x)*cos,M[b].y-y)).slice(0,16);
+  const M=DATA[region].map,{x,y,s:sz}=M[k],R=Math.max(sz*(M[k].p==='W'?.9:1.4),.008),cos=Math.cos(y*Math.PI/180);
+  const isW=M[k].p==='W';const near=Object.keys(M).filter(n=>n!==k&&(M[n].p==='W')===isW&&Math.hypot((M[n].x-x)*cos,M[n].y-y)<R+M[n].s*.5).sort((a,b)=>Math.hypot((M[a].x-x)*cos,M[a].y-y)-Math.hypot((M[b].x-x)*cos,M[b].y-y)).slice(0,16);
   Promise.all(near.map(n=>loadTown(n).then(r=>[n,r]).catch(()=>null))).then(list=>{
     if(key!==k||!revealed)return;const f=[];
     for(const it of list){if(!it)continue;const [n,rings]=it;for(const r of rings)f.push({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:ringLL(r)}});
@@ -228,7 +257,7 @@ function showRanking(c,n,me,myTot){
     $('rk').innerHTML=rows.length?`<table>${rows.map((r,i)=>`<tr${me&&r.name===me&&r.total===myTot?' class="me"':''}><td>${i+1}位</td><td>${esc(r.name)}</td><td class="n">${r.total}点</td></tr>`).join('')}</table>`:'<p>まだ誰も登録していません。1番乗りのチャンス！</p>'})
   .catch(()=>{$('rk').textContent='ランキングを読み込めませんでした'});
 }
-function finish(){$('pop').hidden=true;
+function finish(){$('pop').hidden=true;bgmPlay('title');
   const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),nb=avg>(best[cat]||0);if(nb){best[cat]=avg;try{localStorage.setItem('dgBest',JSON.stringify(best))}catch(e){}}
   $('ov').hidden=false;
   $('card').innerHTML=`<h1>結果</h1><p class="note" style="margin:0 0 6px">${esc(catOf(cat)[2])}</p><div class="big">${tot}点</div><p class="bigttl">総合称号「${esc(titleOf(avg))}」</p><p>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
