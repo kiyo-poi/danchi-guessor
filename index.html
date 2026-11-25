@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Danchi Guessor｜鹿児島 境界線あて</title>
+<title>Danchi Guessor｜団地の境界線当てゲーム</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
 *{box-sizing:border-box}
@@ -10,7 +10,18 @@ header{padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap
 header b{font-size:24px;font-weight:900}header b em{font-style:normal;color:#d8321f}
 .timer{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;padding:2px 12px;border-radius:10px;background:#eef1f3}.timer.low{background:#d8321f;color:#fff}
 header .sub{color:#666;font-size:14px}header .sp{flex:1}
-#map{flex:1;min-height:0;cursor:crosshair}
+#mapwrap{flex:1;min-height:0;position:relative}#map{position:absolute;inset:0;cursor:crosshair}
+#pop{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;border-radius:18px;padding:14px 28px 16px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25);border:4px solid var(--c);z-index:5;min-width:240px;pointer-events:none}
+#pop.go{animation:popin .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes popin{from{transform:translateX(-50%) scale(.3);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+#pop .sc{font-size:72px;font-weight:900;line-height:1;color:var(--c);font-variant-numeric:tabular-nums}#pop .sc small{font-size:26px;margin-left:2px}
+#pop .ttl{font-size:22px;font-weight:900;margin-top:6px;opacity:0;transform:scale(1.8)}
+#pop .ttl.in{opacity:1;transform:scale(1);transition:all .35s cubic-bezier(.2,1.6,.4,1)}
+#pop .to{font-weight:900;color:#d8321f}
+.stamp{width:96px;height:96px;border:5px solid #d8321f;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.85);color:#d8321f;font-weight:900;font-size:19px;line-height:1.1;text-align:center;padding:6px;pointer-events:none;transform:rotate(-12deg);animation:stamp .5s 1.3s both cubic-bezier(.3,1.7,.5,1);box-shadow:0 0 0 3px rgba(255,255,255,.85)}
+@keyframes stamp{from{transform:rotate(-12deg) scale(3);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:1}}
+.bigttl{font-size:22px;font-weight:900;color:#d8321f}td.tt{color:#666;font-size:13px}
+@media (prefers-reduced-motion:reduce){.stamp,#pop.go{animation:none}}
 .maplibregl-canvas-container.maplibregl-interactive{cursor:crosshair}
 footer{padding:10px 14px;display:flex;gap:10px;flex-wrap:wrap;background:#fff;border-top:1px solid #ddd;align-items:center}
 button,select{font:inherit;font-weight:700;min-height:44px;padding:0 16px;border-radius:10px;border:1.5px solid #ccc;background:#fff;color:#1b1f21;cursor:pointer}
@@ -37,7 +48,7 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 <div id="app">
 <header><b><em id="qName">—</em> を囲め</b><span class="sub" id="qNo"></span><span id="timer" class="timer">3:00</span><span class="sp"></span>
 <select id="layer" aria-label="地図の種類"><option value="map">地図（道路・建物名あり）</option><option value="photo">航空写真＋道路名</option></select></header>
-<div id="map"></div>
+<div id="mapwrap"><div id="map"></div><div id="pop" hidden></div></div>
 <footer><span id="msg">境界の角をクリックして点を打つ。最初の点を押すと閉じます。</span>
 <button id="undo">1つ戻す</button><button id="clear">全部消す</button><button class="go" id="ok" disabled>これで決定</button></footer>
 </div>
@@ -91,7 +102,7 @@ $('layer').onchange=e=>map.setLayoutProperty('photo','visibility',e.target.value
 
 function startScreen(){
   $('ov').hidden=false;
-  $('card').innerHTML=`<h1>Danchi Guessor</h1><p style="margin:-4px 0 8px;font-weight:700;color:#d8321f">ダンチゲッサー 〜鹿児島 境界線あて〜</p>
+  $('card').innerHTML=`<h1>Danchi Guessor</h1><p style="margin:-4px 0 8px;font-weight:700;color:#d8321f">ダンチゲッサー｜団地の境界線当てゲーム</p>
   <p>道路やお店・学校の名前を手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>で、時間が来るとそこまでの線で採点します。</p>
   <div class="opt"><label for="setSel">出題</label><select id="setSel"><option value="res">市街地・住宅街・団地（${RES.length}の町からランダム）</option><option value="first">原良・薬師・西田・東千石町・皇徳寺台</option></select></div><div class="opt"><label for="nSel">問題数</label><select id="nSel"><option>5</option><option>10</option><option>20</option></select></div>
   ${best?`<p>これまでの最高：1問あたり平均${best}点</p>`:''}
@@ -107,7 +118,7 @@ function newRound(){
   key=qs[qi];$('qName').textContent='読み込み中…';$('ok').disabled=true;
   loadTown(key).then(()=>{if(qs[qi]===key)startRound();if(qs[qi+1])loadTown(qs[qi+1])}).catch(()=>{$('msg').textContent='境界データを読み込めませんでした。ページを開き直してください。'});
 }
-function startRound(){pts=[];closed=false;revealed=false;if(tag){tag.remove();tag=null}
+function startRound(){$('pop').hidden=true;pts=[];closed=false;revealed=false;if(tag){tag.remove();tag=null}
   map.getSource('ans').setData(fc([]));redraw();
   const b=bounds(TOWNS[key]),c=b.getCenter(),span=Math.max(b.getNorth()-b.getSouth(),b.getEast()-b.getWest(),.006)*2.2;
   const x=c.lng+(Math.random()-.5)*span*.5,y=c.lat+(Math.random()-.5)*span*.5;
@@ -144,16 +155,25 @@ function judge(){
   for(let i=3;i<A.length;i+=4){const a=A[i]>127,b=B[i]>127;if(a&&b)i1++;if(a||b)u++;if(a)ta++;if(b)tb++}
   return{iou:u?i1/u:0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
 }
-const rankOf=s=>s>=90?'地元の達人':s>=75?'かなりの鹿児島通':s>=55?'だいたい分かってる':s>=35?'方向は合ってる':s>=10?'もう少し近所を歩こう':'別の町かも…';
+const TITLES=[[90,['桜島級の土地勘','自治会長','境界の覇王']],[75,['天文館の主','回覧板マスター','領地奉行']],[55,['地元のおじさん','ゴミ当番ベテラン','城代家老']],[35,['市電ユーザー','引っ越してきたばかり','足軽大将']],[10,['観光客','表札を見て回る人','足軽']],[0,['県外から来た人','迷子の配達員','迷い武者']]];
+const titleOf=s=>{const t=TITLES.find(x=>s>=x[0])[1];return t[Math.random()*t.length|0]};
+const rankOf=s=>TITLES.find(x=>s>=x[0])[1][0];
+const colorOf=s=>s>=90?'#c9a227':s>=75?'#d8321f':s>=55?'#e8752a':s>=35?'#2f6bff':'#6b7477';
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function countUp(el,to){if(reduce){el.textContent=to;return}const t0=performance.now(),d=900;const f=t=>{const p=Math.min(1,(t-t0)/d),e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e);if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
 $('ok').onclick=()=>{if(revealed){qi++;return qi<qs.length?newRound():finish()}submit(false)};
 function submit(timeout){
   clearInterval(timerId);
   const r=pts.length>=3?judge():{iou:0,cover:0,extra:0},s=Math.round(r.iou*100);results.push({name:key,s});revealed=true;closed=true;redraw();
   map.getSource('ans').setData(fc(TOWNS[key].map(r=>({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ringLL(r)]}}))));
-  const b=bounds(TOWNS[key]),el=document.createElement('div');el.className='tag';el.textContent=key;
+  if(!reduce){let k=0;const a=()=>{k=Math.min(1,k+.04);map.setPaintProperty('ans-f','fill-opacity',.22*k);map.setPaintProperty('ans-l','line-width',1+4*k);if(k<1)requestAnimationFrame(a)};map.setPaintProperty('ans-f','fill-opacity',0);setTimeout(a,700)}
+  const b=bounds(TOWNS[key]),el=document.createElement('div');el.innerHTML='<div class="stamp"><span>'+esc(key)+'</span></div>';
   tag=new maplibregl.Marker({element:el}).setLngLat(b.getCenter()).addTo(map);
-  for(const p of pts)b.extend([p[1],p[0]]);map.fitBounds(b,{padding:40,duration:600});
-  $('msg').innerHTML=`${timeout?'<b>時間切れ！</b>　':''}<b style="font-size:22px;color:#d8321f">${s}点</b>　${rankOf(s)}　（町の${Math.round(r.cover*100)}%を囲めた／線の${Math.round(r.extra*100)}%は町の外）`;
+  for(const p of pts)b.extend([p[1],p[0]]);map.fitBounds(b,{padding:{top:60,bottom:200,left:40,right:40},duration:reduce?0:1300,curve:1.6});
+  const ttl=titleOf(s);results[results.length-1].t=ttl;
+  $('msg').textContent=`町の${Math.round(r.cover*100)}%を囲めた／線の${Math.round(r.extra*100)}%は町の外`;
+  const pop=$('pop');pop.style.setProperty('--c',colorOf(s));pop.innerHTML=`${timeout?'<div class="to">時間切れ！</div>':''}<div class="sc"><span id="scN">0</span><small>点</small></div><div class="ttl">称号「${esc(ttl)}」</div>`;
+  pop.hidden=true;setTimeout(()=>{pop.hidden=false;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go');countUp($('scN'),s);setTimeout(()=>{pop.querySelector('.ttl').classList.add('in')},reduce?0:950)},reduce?0:1100);
   for(const id of ['undo','clear'])$(id).hidden=true;$('ok').textContent=qi+1<qs.length?'次へ':'結果を見る';upd();
 }
 function showRanking(n,me,myTot){
@@ -166,11 +186,11 @@ function showRanking(n,me,myTot){
     $('rk').innerHTML=rows.length?`<table>${rows.map((r,i)=>`<tr${me&&r.name===me&&r.total===myTot?' class="me"':''}><td>${i+1}位</td><td>${esc(r.name)}</td><td class="n">${r.total}点</td></tr>`).join('')}</table>`:'<p>まだ誰も登録していません。1番乗りのチャンス！</p>'})
   .catch(()=>{$('rk').textContent='ランキングを読み込めませんでした'});
 }
-function finish(){
+function finish(){$('pop').hidden=true;
   const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),nb=avg>best;if(nb){best=avg;try{localStorage.setItem('kgsMapAvg',avg)}catch(e){}}
   $('ov').hidden=false;
-  $('card').innerHTML=`<h1>結果</h1><div class="big">${tot}点</div><p><b>${rankOf(tot/results.length)}</b>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
-  <table>${results.map(r=>`<tr><td>${esc(r.name)}</td><td class="n">${r.s}点</td></tr>`).join('')}</table>
+  $('card').innerHTML=`<h1>結果</h1><div class="big">${tot}点</div><p class="bigttl">総合称号「${esc(titleOf(avg))}」</p><p>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
+  <table>${results.map(r=>`<tr><td>${esc(r.name)}</td><td class="n">${r.s}点</td><td class="tt">${esc(r.t||'')}</td></tr>`).join('')}</table>
   ${challenge&&mode==='chal'&&challenge.score!=null?`<p class="vs">${tot>challenge.score?'勝ち！':tot<challenge.score?'負け…':'引き分け'}　あなた ${tot}点 vs ${challenge.name?esc(challenge.name):'相手'} ${challenge.score}点</p>`:''}
   <div class="opt"><label for="nm">ニックネーム（勝負・ランキング用）</label><input id="nm" maxlength="20" value="${esc(myName)}" placeholder="例：武岡の主"></div>
   <button class="go" id="share" style="width:100%">この問題で勝負する（URLを作る）</button>
@@ -181,7 +201,7 @@ function finish(){
   $('again').onclick=()=>{challenge=null;history.replaceState(null,'',location.pathname);startScreen()};
   const nm=()=>{myName=$('nm').value.trim().slice(0,20);try{localStorage.setItem('kgsName',myName)}catch(e){}return myName};
   $('share').onclick=()=>{const u=new URL(location.pathname,location.origin);u.searchParams.set('q',qs.map(t=>RES.indexOf(t)).join('.'));u.searchParams.set('s',tot);if(nm())u.searchParams.set('n',myName);
-    $('shareUrl').value=u.toString();$('line').href='https://line.me/R/msg/text/?'+encodeURIComponent(`Danchi Guessor（鹿児島 境界線あて）で${tot}点だった。同じ問題で勝負！ `+u);$('shareBox').hidden=false};
+    $('shareUrl').value=u.toString();$('line').href='https://line.me/R/msg/text/?'+encodeURIComponent(`Danchi Guessor（団地の境界線当てゲーム）で${tot}点だった。同じ問題で勝負！ `+u);$('shareBox').hidden=false};
   $('copy').onclick=()=>{navigator.clipboard.writeText($('shareUrl').value).then(()=>$('copy').textContent='コピーしました',()=>{$('shareUrl').select()})};
   if($('reg'))$('reg').onclick=()=>{if(!nm()){$('regMsg').textContent='ニックネームを入れてください';return}
     $('reg').disabled=true;sb('scores',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:myName,total:tot,n:results.length})})
