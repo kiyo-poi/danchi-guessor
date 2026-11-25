@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鹿児島 境界線あて（地図版）</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font:16px/1.5 "Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif;color:#1b1f21;background:#f3f3f1}
+#app{display:flex;flex-direction:column;height:100%}
+header{padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border-bottom:1px solid #ddd}
+header b{font-size:24px;font-weight:900}header b em{font-style:normal;color:#d8321f}
+.timer{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;padding:2px 12px;border-radius:10px;background:#eef1f3}.timer.low{background:#d8321f;color:#fff}
+header .sub{color:#666;font-size:14px}header .sp{flex:1}
+#map{flex:1;min-height:0;cursor:crosshair}
+.maplibregl-canvas-container.maplibregl-interactive{cursor:crosshair}
+footer{padding:10px 14px;display:flex;gap:10px;flex-wrap:wrap;background:#fff;border-top:1px solid #ddd;align-items:center}
+button,select{font:inherit;font-weight:700;min-height:44px;padding:0 16px;border-radius:10px;border:1.5px solid #ccc;background:#fff;color:#1b1f21;cursor:pointer}
+button.go{background:#d8321f;border-color:#d8321f;color:#fff}
+button:disabled{opacity:.4;cursor:default}
+#msg{color:#555;font-size:14px;flex:1;min-width:200px}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px}
+#ov .card{background:#fff;border-radius:16px;padding:22px;max-width:460px;width:100%}
+#ov h1{margin:0 0 8px;font-size:28px;line-height:1.15}
+.big{font-size:56px;font-weight:900;color:#d8321f;line-height:1}
+.opt{margin:10px 0}.opt label{display:block;font-weight:700;margin-bottom:4px}.opt select{width:100%}
+table{width:100%;border-collapse:collapse;margin:10px 0}td{padding:6px 2px;border-bottom:1px solid #eee}td.n{text-align:right;font-weight:700}
+.tag{background:#d8321f;color:#fff;font-weight:900;padding:2px 10px;border-radius:8px;font-size:15px;pointer-events:none}
+[hidden]{display:none!important}
+.note{font-size:12px;color:#777;margin-top:12px}
+</style></head><body>
+<div id="app">
+<header><b><em id="qName">—</em> を囲め</b><span class="sub" id="qNo"></span><span id="timer" class="timer">3:00</span><span class="sp"></span>
+<select id="layer" aria-label="地図の種類"><option value="map">地図（道路・建物名あり）</option><option value="photo">航空写真＋道路名</option></select></header>
+<div id="map"></div>
+<footer><span id="msg">境界の角をクリックして点を打つ。最初の点を押すと閉じます。</span>
+<button id="undo">1つ戻す</button><button id="clear">全部消す</button><button class="go" id="ok" disabled>これで決定</button></footer>
+</div>
+<div id="ov"><div class="card" id="card"><h1>地図を読み込み中…</h1></div></div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+const CODES={"緑ヶ丘町":["002000"],"坂元町":["006000","006100"],"西坂元町":["007000"],"東坂元":["008001","008002","008003","008004"],"清水町":["009000"],"皷川町":["011000"],"池之上町":["012000"],"稲荷町":["013000"],"春日町":["014000"],"柳町":["015000"],"浜町":["016000"],"上竜尾町":["017000"],"下竜尾町":["018000"],"冷水町":["019000"],"長田町":["020000"],"大竜町":["021000"],"上本町":["022000"],"大明丘":["023001","023002","023003"],"小川町":["100000"],"易居町":["101000"],"名山町":["102000"],"山下町":["103000"],"平之町":["104000"],"東千石町":["105000"],"西千石町":["106000"],"中町":["107000"],"金生町":["108000"],"照国町":["109000"],"城山町":["110000"],"城山":["111001","111002"],"泉町":["112000"],"住吉町":["113000"],"堀江町":["114000"],"大黒町":["115000"],"呉服町":["116000"],"新町":["117000"],"船津町":["118000"],"城南町":["119000"],"松原町":["120000"],"南林寺町":["121000"],"甲突町":["122000"],"錦江町":["123000"],"新屋敷町":["124000"],"樋之口町":["125000"],"山之口町":["126000"],"千日町":["127000"],"加治屋町":["128000"],"新照院町":["129000"],"草牟田町":["130000"],"草牟田":["131001","131002"],"玉里町":["132000"],"玉里団地":["133001","133002","133003"],"若葉町":["134000"],"明和":["201001","201002","201003","201004","201005"],"原良":["202101","202102","202103","202104","202105","202106","202107"],"薬師":["203001","203002"],"城西":["204001","204002","204003"],"鷹師":["205001","205002"],"常盤":["206101","206102"],"西田":["207001","207002","207003"],"武":["210001","210002","210003"],"武岡":["213001","213002","213003","213004","213005","213006"],"西陵":["214001","214002","214003","214004","214005","214006","214007","214008"],"田上":["215001","215002","215003","215004","215005","215006","215007","215008"],"田上台":["216001","216002","216003","216004"],"永吉":["217001","217002","217003"],"中央町":["300000"],"高麗町":["301000"],"上之園町":["302000"],"上荒田町":["303000"],"荒田":["304001","304002"],"与次郎":["305001","305002"],"下荒田":["306001","306002","306003","306004"],"天保山町":["307000"],"鴨池新町":["309000"],"鴨池":["310001","310002"],"郡元町":["311000"],"郡元":["312001","312002","312003"],"南郡元町":["313000"],"東郡元町":["314000"],"真砂町":["315000"],"真砂本町":["316000"],"三和町":["317000"],"紫原":["318001","318002","318003","318004","318005","318006","318007"],"西紫原町":["319000"],"南新町":["320000"],"日之出町":["321000"],"宇宿町":["322001"],"宇宿":["323001","323002","323003","323004","323005","323006","323007","323008","323009"],"新栄町":["324000"],"唐湊":["326001","326002","326003","326004"],"向陽":["328001","328002"],"広木":["329001","329002","329003"],"桜ヶ丘":["503001","503002","503003","503004","503005","503006","503007","503008"],"魚見町":["504000"],"東谷山":["505001","505002","505003","505004","505005","505006","505007"],"小松原":["508001","508002"],"錦江台":["517001","517002","517003"],"星ヶ峯":["518001","518002","518003","518004","518005","518006"],"自由ヶ丘":["519001","519002"],"希望ケ丘町":["520000"],"皇徳寺台":["522001","522002","522003","522004","522005"],"谷山中央":["523001","523002","523003","523004","523005","523006","523007","523008"],"和田":["525001","525002","525003"],"中山":["526001","526002"],"清和":["527001","527002"],"坂之上":["528001","528002","528003","528004","528005","528006","528007","528008"],"光山":["529001","529002"],"西谷山":["530001","530002"],"西伊敷":["601001","601002","601003","601004","601005","601006","601007"],"千年":["602001","602002"],"小野":["608001","608002","608003","608004"],"花野光ヶ丘":["609001","609002"],"下伊敷":["610001","610002","610003"],"伊敷台":["611001","611002","611003","611004","611005","611006","611007"],"伊敷":["612001","612002","612003","612004","612005","612006","612007","612008"],"吉野":["670001","670002"],"牟礼岡":["706001","706002","706003"],"松陽台町":["733000"]},TOWNS={};
+{
+const FIRST=["原良","薬師","西田","東千石町","皇徳寺台"],RES=Object.keys(CODES);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[130.54,31.585],zoom:14,doubleClickZoom:false,dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true,customAttribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'}});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-left');
+map.touchZoomRotate.disableRotation();
+const BASE='https://raw.githubusercontent.com/geolonia/japanese-boundaries/master/data/japan/46/201/';
+const loadTown=k=>TOWNS[k]?Promise.resolve(TOWNS[k]):Promise.all(CODES[k].map(c=>fetch(BASE+c+'.geojson').then(r=>r.json()))).then(fs=>{const rings=[];
+  for(const d of fs){const g=(d.features?d.features[0]:d).geometry,polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;
+    for(const p of polys)for(const r of p)rings.push(r.slice(0,-1).map(c=>[c[1],c[0]]))}
+  return TOWNS[k]=rings});
+const LIMIT=180;let timerId=null,endAt=0;let qs=[],qi=0,results=[],key='',pts=[],closed=false,revealed=false,best=0,tag=null,firstSym;
+try{best=Number(localStorage.getItem('kgsMapAvg')||0)}catch(e){}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const fc=f=>({type:'FeatureCollection',features:f});
+const ringLL=r=>{const c=r.map(p=>[p[1],p[0]]);c.push(c[0]);return c};
+
+map.on('load',()=>{
+  // 町名・地名のラベルを消し、残りのラベルを日本語に
+  for(const l of map.getStyle().layers){
+    if(l.type!=='symbol')continue;
+    if(!firstSym)firstSym=l.id;
+    if(l['source-layer']==='place'||/^(place|label_)/.test(l.id)){map.setLayoutProperty(l.id,'visibility','none');continue}
+    if(map.getLayoutProperty(l.id,'text-field'))map.setLayoutProperty(l.id,'text-field',['coalesce',['get','name:ja'],['get','name']]);
+  }
+  map.addSource('photo',{type:'raster',tiles:['https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg'],tileSize:256,maxzoom:18});
+  map.addLayer({id:'photo',type:'raster',source:'photo',layout:{visibility:'none'}},firstSym);
+  map.addSource('ans',{type:'geojson',data:fc([])});
+  map.addLayer({id:'ans-f',type:'fill',source:'ans',paint:{'fill-color':'#d8321f','fill-opacity':.15}});
+  map.addLayer({id:'ans-l',type:'line',source:'ans',paint:{'line-color':'#d8321f','line-width':3}});
+  map.addSource('me',{type:'geojson',data:fc([])});
+  map.addLayer({id:'me-f',type:'fill',source:'me',filter:['==','$type','Polygon'],paint:{'fill-color':'#2f6bff','fill-opacity':.15}});
+  map.addLayer({id:'me-l',type:'line',source:'me',filter:['!=','$type','Point'],paint:{'line-color':'#2f6bff','line-width':3}});
+  map.addLayer({id:'me-p',type:'circle',source:'me',filter:['==','$type','Point'],paint:{'circle-radius':['case',['get','first'],8,5],'circle-color':['case',['get','first'],'#fff','#2f6bff'],'circle-stroke-color':'#2f6bff','circle-stroke-width':3}});
+  startScreen();
+});
+$('layer').onchange=e=>map.setLayoutProperty('photo','visibility',e.target.value==='photo'?'visible':'none');
+
+function startScreen(){
+  $('ov').hidden=false;
+  $('card').innerHTML=`<h1>鹿児島市 境界線あて</h1>
+  <p>道路やお店・学校の名前を手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>で、時間が来るとそこまでの線で採点します。</p>
+  <div class="opt"><label for="setSel">出題</label><select id="setSel"><option value="res">市街地・住宅街・団地（${RES.length}の町からランダム）</option><option value="first">原良・薬師・西田・東千石町・皇徳寺台</option></select></div><div class="opt"><label for="nSel">問題数</label><select id="nSel"><option>5</option><option>10</option><option>20</option></select></div>
+  ${best?`<p>これまでの最高：1問あたり平均${best}点</p>`:''}
+  <button class="go" id="go" style="width:100%">スタート</button>
+  <p class="note">お店や建物の名前は拡大すると増えます。バス停や施設名に町名が入っていることもあるので、それも手がかりです。</p>`;
+  $('go').onclick=()=>{const s=$('setSel').value,n=+$('nSel').value;qs=s==='first'?shuffle(FIRST):shuffle(RES).slice(0,n);qi=0;results=[];$('ov').hidden=true;newRound()};
+}
+function bounds(rings){const b=new maplibregl.LngLatBounds();for(const r of rings)for(const p of r)b.extend([p[1],p[0]]);return b}
+function newRound(){
+  key=qs[qi];$('qName').textContent='読み込み中…';$('ok').disabled=true;
+  loadTown(key).then(()=>{if(qs[qi]===key)startRound();if(qs[qi+1])loadTown(qs[qi+1])}).catch(()=>{$('msg').textContent='境界データを読み込めませんでした。ページを開き直してください。'});
+}
+function startRound(){pts=[];closed=false;revealed=false;if(tag){tag.remove();tag=null}
+  map.getSource('ans').setData(fc([]));redraw();
+  const b=bounds(TOWNS[key]),c=b.getCenter(),span=Math.max(b.getNorth()-b.getSouth(),b.getEast()-b.getWest(),.006)*2.2;
+  const x=c.lng+(Math.random()-.5)*span*.5,y=c.lat+(Math.random()-.5)*span*.5;
+  map.fitBounds([[x-span/2,y-span/2],[x+span/2,y+span/2]],{duration:0});
+  $('qName').textContent=key;$('qNo').textContent=`第${qi+1}問 / ${qs.length}`;
+  $('msg').textContent='境界の角をクリックして点を打つ。最初の点を押すと閉じます。';
+  for(const id of ['undo','clear'])$(id).hidden=false;$('ok').textContent='これで決定';upd();
+  endAt=Date.now()+LIMIT*1000;clearInterval(timerId);tick();timerId=setInterval(tick,250);
+}
+function tick(){const left=Math.max(0,Math.ceil((endAt-Date.now())/1000));$('timer').textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');$('timer').classList.toggle('low',left<=30);if(left===0){clearInterval(timerId);if(!revealed)submit(true)}}
+function redraw(){
+  const f=[],ll=pts.map(p=>[p[1],p[0]]);
+  if(pts.length>1)f.push(closed||revealed?{type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[[...ll,ll[0]]]}}:{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:ll}});
+  if(!revealed)ll.forEach((c,i)=>f.push({type:'Feature',properties:{first:i===0},geometry:{type:'Point',coordinates:c}}));
+  map.getSource('me').setData(fc(f));
+}
+function upd(){$('ok').disabled=!revealed&&pts.length<3;$('undo').disabled=!pts.length;$('clear').disabled=!pts.length}
+map.on('click',e=>{
+  if(revealed||closed||!$('ov').hidden)return;
+  if(pts.length>=3){const f=map.project([pts[0][1],pts[0][0]]);if(Math.hypot(f.x-e.point.x,f.y-e.point.y)<14){closed=true;redraw();upd();return}}
+  pts.push([e.lngLat.lat,e.lngLat.lng]);redraw();upd();
+});
+$('undo').onclick=()=>{if(closed)closed=false;else pts.pop();redraw();upd()};
+$('clear').onclick=()=>{pts=[];closed=false;redraw();upd()};
+
+function judge(){
+  const t=TOWNS[key],all=t.flat().concat(pts),k=Math.cos(all[0][0]*Math.PI/180),P=p=>[p[1]*k,-p[0]],xy=all.map(P),N=500;
+  const minx=Math.min(...xy.map(p=>p[0])),miny=Math.min(...xy.map(p=>p[1]));
+  const s=Math.max(Math.max(...xy.map(p=>p[0]))-minx,Math.max(...xy.map(p=>p[1]))-miny)*1.02;
+  const f=p=>{const q=P(p);return[(q[0]-minx)/s*N,(q[1]-miny)/s*N]};
+  const mk=rings=>{const c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');x.beginPath();
+    for(const r of rings){r.forEach((p,i)=>{const q=f(p);i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1])});x.closePath()}x.fill('evenodd');return x.getImageData(0,0,N,N).data};
+  const A=mk(t),B=mk([pts]);let i1=0,u=0,ta=0,tb=0;
+  for(let i=3;i<A.length;i+=4){const a=A[i]>127,b=B[i]>127;if(a&&b)i1++;if(a||b)u++;if(a)ta++;if(b)tb++}
+  return{iou:u?i1/u:0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
+}
+const rankOf=s=>s>=90?'地元の達人':s>=75?'かなりの鹿児島通':s>=55?'だいたい分かってる':s>=35?'方向は合ってる':s>=10?'もう少し近所を歩こう':'別の町かも…';
+$('ok').onclick=()=>{if(revealed){qi++;return qi<qs.length?newRound():finish()}submit(false)};
+function submit(timeout){
+  clearInterval(timerId);
+  const r=pts.length>=3?judge():{iou:0,cover:0,extra:0},s=Math.round(r.iou*100);results.push({name:key,s});revealed=true;closed=true;redraw();
+  map.getSource('ans').setData(fc(TOWNS[key].map(r=>({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ringLL(r)]}}))));
+  const b=bounds(TOWNS[key]),el=document.createElement('div');el.className='tag';el.textContent=key;
+  tag=new maplibregl.Marker({element:el}).setLngLat(b.getCenter()).addTo(map);
+  for(const p of pts)b.extend([p[1],p[0]]);map.fitBounds(b,{padding:40,duration:600});
+  $('msg').innerHTML=`${timeout?'<b>時間切れ！</b>　':''}<b style="font-size:22px;color:#d8321f">${s}点</b>　${rankOf(s)}　（町の${Math.round(r.cover*100)}%を囲めた／線の${Math.round(r.extra*100)}%は町の外）`;
+  for(const id of ['undo','clear'])$(id).hidden=true;$('ok').textContent=qi+1<qs.length?'次へ':'結果を見る';upd();
+}
+function finish(){
+  const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),nb=avg>best;if(nb){best=avg;try{localStorage.setItem('kgsMapAvg',avg)}catch(e){}}
+  $('ov').hidden=false;
+  $('card').innerHTML=`<h1>結果</h1><div class="big">${tot}点</div><p><b>${rankOf(tot/results.length)}</b>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
+  <table>${results.map(r=>`<tr><td>${esc(r.name)}</td><td class="n">${r.s}点</td></tr>`).join('')}</table>
+  <button class="go" id="again" style="width:100%">もう一度</button>`;
+  $('again').onclick=startScreen;
+}
+setTimeout(()=>{if($('card').textContent.includes('読み込み中'))$('card').innerHTML='<h1>地図を読み込めませんでした</h1><p>インターネットにつながっているか確認して、ページを開き直してください。</p>'},20000);
+}
+</script>
+</body></html>
