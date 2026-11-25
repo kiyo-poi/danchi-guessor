@@ -7,7 +7,7 @@
 html,body{margin:0;height:100%;font:16px/1.5 "Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif;color:#1b1f21;background:#f3f3f1}
 #app{display:flex;flex-direction:column;height:100%}
 header{padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border-bottom:1px solid #ddd}
-header b{font-size:24px;font-weight:900}header b em{font-style:normal;color:#d8321f}
+header b{font-size:24px;font-weight:900}header b small{font-size:15px;color:#666;margin-left:4px;font-weight:700}header b em{font-style:normal;color:#d8321f}
 .timer{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;padding:2px 12px;border-radius:10px;background:#eef1f3}.timer.low{background:#d8321f;color:#fff}
 header .sub{color:#666;font-size:14px}header .sp{flex:1}
 #mapwrap{flex:1;min-height:0;position:relative}#map{position:absolute;inset:0;cursor:crosshair}
@@ -47,8 +47,8 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 .note{font-size:12px;color:#777;margin-top:12px}
 </style></head><body>
 <div id="app">
-<header><b><em id="qName">—</em> を囲め</b><span class="sub" id="qNo"></span><span id="timer" class="timer">3:00</span><span class="sp"></span>
-<select id="layer" aria-label="地図の種類"><option value="map">地図（道路・建物名あり）</option><option value="photo">航空写真＋道路名</option></select></header>
+<header><b><em id="qName">—</em><small id="qWard"></small> を囲め</b><span class="sub" id="qNo"></span><span id="timer" class="timer">3:00</span><span class="sp"></span>
+<select id="layer" aria-label="地図の種類"><option value="liberty">地図：カラフル</option><option value="positron">地図：シンプル</option><option value="bright">地図：くっきり</option><option value="photo">航空写真＋道路名</option><option value="gsistd">地理院地図（町名あり・かんたん）</option><option value="gsipale">地理院 淡色（町名あり・かんたん）</option><option value="old">昔の航空写真（1974〜78年）</option></select></header>
 <div id="mapwrap"><div id="map"></div><div id="pop" hidden></div></div>
 <footer><span id="msg">境界の角をクリックして点を打つ。最初の点を押すと閉じます。</span>
 <button id="undo">1つ戻す</button><button id="clear">全部消す</button><button class="go" id="ok" disabled>これで決定</button></footer>
@@ -56,78 +56,105 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 <div id="ov"><div class="card" id="card"><h1>地図を読み込み中…</h1></div></div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
-const ALL={"岡之原町":[130.5391,31.6612,0.0352,["001000"]],"緑ヶ丘町":[130.5458,31.6563,0.0092,["002000"]],"川上町":[130.5567,31.6586,0.0415,["003000","003001"]],"下田町":[130.5484,31.6397,0.0283,["004000"]],"吉野町":[130.5857,31.63,0.0501,["005000","005001","005002","005003","005004"]],"坂元町":[130.5533,31.619,0.0221,["006000","006100"]],"西坂元町":[130.5495,31.6118,0.0105,["007000"]],"東坂元":[130.5601,31.6209,0.0149,["008001","008002","008003","008004"]],"清水町":[130.5705,31.6073,0.0094,["009000"]],"祇園之洲町":[130.5731,31.6059,0.0051,["010000"]],"皷川町":[130.564,31.6145,0.009,["011000"]],"池之上町":[130.5615,31.6105,0.0081,["012000"]],"稲荷町":[130.569,31.613,0.0093,["013000"]],"春日町":[130.5657,31.606,0.0045,["014000"]],"柳町":[130.5637,31.6035,0.004,["015000"]],"浜町":[130.5653,31.602,0.0093,["016000"]],"上竜尾町":[130.5576,31.6091,0.0093,["017000"]],"下竜尾町":[130.5574,31.6053,0.0071,["018000"]],"冷水町":[130.5508,31.6076,0.011,["019000"]],"長田町":[130.5543,31.6025,0.0126,["020000"]],"大竜町":[130.5622,31.6052,0.005,["021000"]],"上本町":[130.561,31.6024,0.0047,["022000"]],"大明丘":[130.5671,31.6306,0.0104,["023001","023002","023003"]],"小川町":[130.5613,31.5992,0.0065,["100000"]],"易居町":[130.5599,31.5971,0.0045,["101000"]],"名山町":[130.5591,31.5953,0.0043,["102000"]],"山下町":[130.5564,31.5968,0.0075,["103000"]],"平之町":[130.5468,31.5914,0.0056,["104000"]],"東千石町":[130.5535,31.5918,0.0052,["105000"]],"西千石町":[130.5483,31.5888,0.0071,["106000"]],"中町":[130.5561,31.5926,0.0035,["107000"]],"金生町":[130.5575,31.5931,0.0029,["108000"]],"照国町":[130.55,31.5936,0.0066,["109000"]],"城山町":[130.5521,31.598,0.0106,["110000"]],"城山":[130.5466,31.6053,0.0102,["111001","111002"]],"泉町":[130.5601,31.5931,0.0041,["112000"]],"住吉町":[130.5619,31.5901,0.0056,["113000"]],"堀江町":[130.5603,31.5898,0.005,["114000"]],"大黒町":[130.5582,31.5908,0.0022,["115000"]],"呉服町":[130.5568,31.5905,0.0021,["116000"]],"新町":[130.5591,31.5894,0.0024,["117000"]],"船津町":[130.5577,31.5888,0.0022,["118000"]],"城南町":[130.5641,31.5838,0.0122,["119000"]],"松原町":[130.5588,31.5873,0.0049,["120000"]],"南林寺町":[130.5601,31.5848,0.0058,["121000"]],"甲突町":[130.559,31.5799,0.0068,["122000"]],"錦江町":[130.5662,31.5759,0.0094,["123000"]],"新屋敷町":[130.5555,31.5826,0.0071,["124000"]],"樋之口町":[130.5549,31.5858,0.0045,["125000"]],"山之口町":[130.5533,31.5882,0.0046,["126000"]],"千日町":[130.5558,31.589,0.0038,["127000"]],"加治屋町":[130.5494,31.5861,0.0079,["128000"]],"新照院町":[130.5454,31.5958,0.0095,["129000"]],"草牟田町":[130.5366,31.6074,0.0038,["130000"]],"草牟田":[130.5411,31.6038,0.0127,["131001","131002"]],"玉里町":[130.5422,31.6125,0.0102,["132000"]],"玉里団地":[130.5454,31.6195,0.0136,["133001","133002","133003"]],"若葉町":[130.5468,31.6256,0.008,["134000"]],"明和":[130.5233,31.6022,0.0183,["201001","201002","201003","201004","201005"]],"原良":[130.5257,31.596,0.0226,["202101","202102","202103","202104","202105","202106","202107"]],"原良町":[130.5336,31.5943,0.0037,["202200"]],"薬師":[130.5384,31.5915,0.0096,["203001","203002"]],"城西":[130.5379,31.5956,0.0096,["204001","204002","204003"]],"鷹師":[130.5435,31.5907,0.0038,["205001","205002"]],"常盤":[130.5318,31.5885,0.0138,["206101","206102"]],"常盤町":[130.5201,31.5932,0.0033,["206200"]],"西田":[130.5406,31.5869,0.0108,["207001","207002","207003"]],"武":[130.5351,31.5807,0.0127,["210001","210002","210003"]],"田上町":[130.5112,31.5719,0.0272,["211000","211001"]],"西別府町":[130.4902,31.5983,0.0405,["212000"]],"武岡":[130.5148,31.5926,0.0258,["213001","213002","213003","213004","213005","213006"]],"西陵":[130.509,31.582,0.0222,["214001","214002","214003","214004","214005","214006","214007","214008"]],"田上":[130.5197,31.5857,0.0364,["215001","215002","215003","215004","215005","215006","215007","215008"]],"田上台":[130.522,31.5709,0.0176,["216001","216002","216003","216004"]],"永吉":[130.533,31.6039,0.0118,["217001","217002","217003"]],"中央町":[130.5438,31.5825,0.0081,["300000"]],"高麗町":[130.5508,31.5808,0.0067,["301000"]],"上之園町":[130.5464,31.581,0.0074,["302000"]],"上荒田町":[130.5421,31.5752,0.0118,["303000"]],"荒田":[130.55,31.5736,0.0101,["304001","304002"]],"与次郎":[130.5611,31.5645,0.0171,["305001","305002"]],"下荒田":[130.5563,31.5726,0.0153,["306001","306002","306003","306004"]],"天保山町":[130.5634,31.5737,0.0088,["307000"]],"鴨池新町":[130.5582,31.5547,0.0165,["309000"]],"鴨池":[130.5506,31.5651,0.0113,["310001","310002"]],"郡元町":[130.5426,31.5619,0.0078,["311000"]],"郡元":[130.5438,31.5659,0.0164,["312001","312002","312003"]],"南郡元町":[130.5447,31.5559,0.0074,["313000"]],"東郡元町":[130.5482,31.5547,0.0086,["314000"]],"真砂町":[130.5524,31.5602,0.0065,["315000"]],"真砂本町":[130.5528,31.5554,0.0085,["316000"]],"三和町":[130.5541,31.5501,0.0049,["317000"]],"紫原":[130.5355,31.5582,0.0232,["318001","318002","318003","318004","318005","318006","318007"]],"西紫原町":[130.5295,31.556,0.0062,["319000"]],"南新町":[130.5411,31.555,0.0055,["320000"]],"日之出町":[130.5392,31.5506,0.0075,["321000"]],"宇宿町":[130.5239,31.5537,0.0006,["322001"]],"宇宿":[130.5331,31.5477,0.0334,["323001","323002","323003","323004","323005","323006","323007","323008","323009"]],"新栄町":[130.5448,31.5482,0.0126,["324000"]],"本港新町":[130.5625,31.5942,0.0094,["325000"]],"唐湊":[130.5345,31.5689,0.0157,["326001","326002","326003","326004"]],"中央港新町":[130.5531,31.538,0.01,["327000"]],"向陽":[130.5176,31.5582,0.0067,["328001","328002"]],"広木":[130.52,31.5634,0.0118,["329001","329002","329003"]],"五ヶ別府町":[130.4754,31.576,0.0524,["500000"]],"山田町":[130.5014,31.564,0.0307,["501000"]],"中山町":[130.4794,31.5374,0.0631,["502000"]],"桜ヶ丘":[130.515,31.5522,0.0235,["503001","503002","503003","503004","503005","503006","503007","503008"]],"魚見町":[130.5237,31.541,0.015,["504000"]],"東谷山":[130.5241,31.5353,0.0227,["505001","505002","505003","505004","505005","505006","505007"]],"上福元町":[130.4945,31.5299,0.0394,["506001","506002","506003"]],"下福元町":[130.4614,31.498,0.0801,["507000","507001","507003","507004","507005"]],"小松原":[130.5292,31.5331,0.015,["508001","508002"]],"平川町":[130.5001,31.4506,0.0642,["511000"]],"東開町":[130.5328,31.5298,0.0191,["512000"]],"卸本町":[130.5218,31.5155,0.0103,["513000"]],"南栄":[130.5281,31.511,0.0294,["514001","514002","514003","514004","514005","514006"]],"七ッ島":[130.5127,31.4799,0.0351,["515001","515002"]],"谷山港":[130.5259,31.4949,0.0226,["516001","516002","516003"]],"錦江台":[130.4965,31.5021,0.0116,["517001","517002","517003"]],"星ヶ峯":[130.4942,31.5759,0.0278,["518001","518002","518003","518004","518005","518006"]],"自由ヶ丘":[130.5119,31.5414,0.0069,["519001","519002"]],"希望ケ丘町":[130.5155,31.5381,0.0077,["520000"]],"小原町":[130.5247,31.543,0.0124,["521000"]],"皇徳寺台":[130.486,31.5615,0.0251,["522001","522002","522003","522004","522005"]],"谷山中央":[130.5161,31.5209,0.0202,["523001","523002","523003","523004","523005","523006","523007","523008"]],"慈眼寺町":[130.5054,31.5128,0.0096,["524000"]],"和田":[130.511,31.5104,0.0159,["525001","525002","525003"]],"中山":[130.5098,31.5486,0.0138,["526001","526002"]],"清和":[130.5122,31.5374,0.0123,["527001","527002"]],"坂之上":[130.5062,31.4979,0.024,["528001","528002","528003","528004","528005","528006","528007","528008"]],"光山":[130.509,31.4923,0.0088,["529001","529002"]],"西谷山":[130.5077,31.5226,0.0095,["530001","530002"]],"伊敷町":[130.5164,31.6349,0.0298,["600000"]],"西伊敷":[130.5322,31.6413,0.0216,["601001","601002","601003","601004","601005","601006","601007"]],"千年":[130.5247,31.6393,0.0099,["602001","602002"]],"下伊敷町":[130.5438,31.6242,0.0012,["603000"]],"小野町":[130.5059,31.6067,0.038,["604000"]],"犬迫町":[130.4879,31.6287,0.0554,["605000"]],"小山田町":[130.4851,31.6584,0.0525,["606000"]],"皆与志町":[130.5203,31.6666,0.0474,["607000"]],"小野":[130.5236,31.6114,0.0328,["608001","608002","608003","608004"]],"花野光ヶ丘":[130.5274,31.6507,0.0092,["609001","609002"]],"下伊敷":[130.5358,31.6173,0.0183,["610001","610002","610003"]],"伊敷台":[130.5373,31.6266,0.0278,["611001","611002","611003","611004","611005","611006","611007"]],"伊敷":[130.5264,31.6257,0.0234,["612001","612002","612003","612004","612005","612006","612007","612008"]],"野尻町":[130.6218,31.5691,0.0248,["650000"]],"持木町":[130.6291,31.5623,0.0204,["651000"]],"東桜島町":[130.6392,31.5578,0.0252,["652000"]],"古里町":[130.6526,31.5554,0.0165,["653000"]],"有村町":[130.681,31.5525,0.042,["654000"]],"黒神町":[130.6871,31.5872,0.088,["655000"]],"高免町":[130.6997,31.6118,0.0305,["656000"]],"吉野":[130.5667,31.6533,0.0141,["670001","670002"]],"東佐多町":[130.5727,31.7328,0.0322,["701000"]],"西佐多町":[130.5317,31.7364,0.077,["702000"]],"本城町":[130.5558,31.7113,0.0565,["703000"]],"本名町":[130.5374,31.6993,0.0505,["704000"]],"宮之浦町":[130.578,31.6813,0.0479,["705000"]],"牟礼岡":[130.5862,31.6745,0.0107,["706001","706002","706003"]],"桜島横山町":[130.5909,31.5674,0.0031,["707000"]],"桜島赤水町":[130.6143,31.5734,0.0144,["708000"]],"桜島小池町":[130.6077,31.5945,0.0195,["709000"]],"桜島赤生原町":[130.632,31.5909,0.0679,["710000"]],"桜島武町":[130.6192,31.6127,0.0133,["711000"]],"桜島藤野町":[130.629,31.6168,0.0147,["712000"]],"桜島西道町":[130.6441,31.6183,0.0122,["713000"]],"桜島松浦町":[130.6464,31.6093,0.0641,["714000"]],"桜島二俣町":[130.658,31.6233,0.0113,["715000"]],"新島町":[130.7249,31.6373,0.0013,["718000"]],"喜入瀬々串町":[130.5103,31.4166,0.0378,["719000"]],"喜入中名町":[130.5332,31.3868,0.0528,["720000"]],"喜入町":[130.5403,31.3641,0.0436,["721000"]],"喜入一倉町":[130.512,31.3521,0.0443,["722000"]],"喜入前之浜町":[130.5412,31.336,0.0443,["723000"]],"喜入生見町":[130.5519,31.3102,0.0565,["724000"]],"上谷口町":[130.4378,31.5981,0.0431,["725000"]],"福山町":[130.4368,31.6116,0.0383,["726000"]],"石谷町":[130.4553,31.6109,0.0397,["727000"]],"春山町":[130.4584,31.5647,0.0566,["728000"]],"直木町":[130.4216,31.5839,0.0383,["729000"]],"入佐町":[130.3989,31.5809,0.0328,["730000"]],"四元町":[130.4408,31.5706,0.0384,["731000"]],"平田町":[130.4309,31.5503,0.0424,["732000"]],"松陽台町":[130.4556,31.598,0.0086,["733000"]],"郡山岳町":[130.4327,31.7037,0.059,["734000"]],"有屋田町":[130.4453,31.6657,0.0212,["735000"]],"西俣町":[130.4564,31.6879,0.0686,["736000"]],"郡山町":[130.4618,31.6996,0.0732,["737000"]],"油須木町":[130.4792,31.6926,0.0274,["738000"]],"花尾町":[130.4907,31.7132,0.0495,["739000"]],"東俣町":[130.5011,31.6877,0.0369,["740000"]],"川田町":[130.5035,31.6724,0.0228,["741000"]],"桜島白浜町":[130.6686,31.6235,0.0138,["742000"]]},RES=["緑ヶ丘町", "坂元町", "西坂元町", "東坂元", "清水町", "皷川町", "池之上町", "稲荷町", "春日町", "柳町", "浜町", "上竜尾町", "下竜尾町", "冷水町", "長田町", "大竜町", "上本町", "大明丘", "小川町", "易居町", "名山町", "山下町", "平之町", "東千石町", "西千石町", "中町", "金生町", "照国町", "城山町", "城山", "泉町", "住吉町", "堀江町", "大黒町", "呉服町", "新町", "船津町", "城南町", "松原町", "南林寺町", "甲突町", "錦江町", "新屋敷町", "樋之口町", "山之口町", "千日町", "加治屋町", "新照院町", "草牟田町", "草牟田", "玉里町", "玉里団地", "若葉町", "明和", "原良", "薬師", "城西", "鷹師", "常盤", "西田", "武", "武岡", "西陵", "田上", "田上台", "永吉", "中央町", "高麗町", "上之園町", "上荒田町", "荒田", "与次郎", "下荒田", "天保山町", "鴨池新町", "鴨池", "郡元町", "郡元", "南郡元町", "東郡元町", "真砂町", "真砂本町", "三和町", "紫原", "西紫原町", "南新町", "日之出町", "宇宿町", "宇宿", "新栄町", "唐湊", "向陽", "広木", "桜ヶ丘", "魚見町", "東谷山", "小松原", "錦江台", "星ヶ峯", "自由ヶ丘", "希望ケ丘町", "皇徳寺台", "谷山中央", "和田", "中山", "清和", "坂之上", "光山", "西谷山", "西伊敷", "千年", "小野", "花野光ヶ丘", "下伊敷", "伊敷台", "伊敷", "吉野", "牟礼岡", "松陽台町"],TOWNS={};
 {
-const FIRST=["原良","薬師","西田","東千石町","皇徳寺台"];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
-const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[130.54,31.585],zoom:14,doubleClickZoom:false,dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true,customAttribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'}});
+const REG={kagoshima:{c:[130.55,31.58],local:['桜島級の土地勘','天文館の主','市電ユーザー']},tokyo:{c:[139.74,35.69],local:['江戸っ子の土地勘','山手線の主','都バスユーザー']},osaka:{c:[135.51,34.68],local:['太閤級の土地勘','ミナミの主','環状線ユーザー']}};
+const CATS=[['kgsc','kagoshima','鹿児島中心街（鹿児島中央駅から5km）'],['kgs','kagoshima','鹿児島市（市街地・住宅街・団地）'],['tky','tokyo','東京中心街（山手線の内側）'],['tk23','tokyo','東京23区'],['osc','osaka','大阪中心街（大阪環状線の内側）']];
+const catOf=id=>CATS.find(c=>c[0]===id)||CATS[0];
+const DATA={};// region -> {keys:[], map:{}, cat:{id:[keys]}}
+const loadRegion=r=>DATA[r]?Promise.resolve(DATA[r]):fetch('towns-'+r+'.json').then(x=>x.json()).then(rows=>{const d={keys:[],map:{},cat:{}};
+  for(const [k,x,y,s,p,c,cs] of rows){d.keys.push(k);d.map[k]={x,y,s,p,c};for(const id of cs.split(' ').filter(Boolean))(d.cat[id]=d.cat[id]||[]).push(k)}return DATA[r]=d});
+const disp=k=>k.split(' ').pop(),ward=k=>k.includes(' ')?k.split(' ')[0]:'';
+const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/'+((()=>{try{const v=localStorage.getItem('dgMap');return v==='positron'||v==='bright'?v:'liberty'}catch(e){return 'liberty'}})()),center:REG.kagoshima.c,zoom:13,doubleClickZoom:false,dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true,customAttribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a> | 境界：<a href="https://github.com/geolonia/japanese-boundaries" target="_blank">Geolonia</a>'}});
 map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-left');
 map.touchZoomRotate.disableRotation();
-const BASE='https://raw.githubusercontent.com/geolonia/japanese-boundaries/master/data/japan/46/201/';
-const loadTown=k=>TOWNS[k]?Promise.resolve(TOWNS[k]):Promise.all(ALL[k][3].map(c=>fetch(BASE+c+'.geojson').then(r=>r.json()))).then(fs=>{const rings=[];
+const BASE='https://raw.githubusercontent.com/geolonia/japanese-boundaries/master/data/japan/';
+const TOWNS={};
+const files=t=>t.c.split(';').flatMap(g=>{const [a,b]=g.split(':');return b.split(',').map(s=>BASE+t.p+'/'+a+s+'.geojson')});
+const loadTown=k=>{if(TOWNS[k])return Promise.resolve(TOWNS[k]);const t=DATA[region].map[k];return Promise.all(files(t).map(u=>fetch(u).then(r=>r.json()))).then(fs=>{const rings=[];
   for(const d of fs){const g=(d.features?d.features[0]:d).geometry,polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;
     for(const p of polys)for(const r of p)rings.push(r.slice(0,-1).map(c=>[c[1],c[0]]))}
-  return TOWNS[k]=rings});
-const SB_URL='https://mzebygrmdgsjulxugtsi.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16ZWJ5Z3JtZGdzanVseHVndHNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU2MTQ5MzAsImV4cCI6MjExMTE5MDkzMH0.0xsdHqvrKKSspeJRCd7jpZ-FR8jO568O98bWqNIXrDY';// Supabase（ランキング用）
-const params=new URLSearchParams(location.search);
-let challenge=null;{const q=params.get('q');if(q){const t=q.split('.').map(Number).map(i=>RES[i]).filter(Boolean);if(t.length)challenge={towns:t,score:params.has('s')?+params.get('s'):null,name:(params.get('n')||'').slice(0,20)}}}
+  return TOWNS[k]=rings})};
+const SB_URL='https://mzebygrmdgsjulxugtsi.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16ZWJ5Z3JtZGdzanVseHVndHNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU2MTQ5MzAsImV4cCI6MjExMTE5MDkzMH0.0xsdHqvrKKSspeJRCd7jpZ-FR8jO568O98bWqNIXrDY';
 const sb=(path,opt={})=>fetch(SB_URL+'/rest/v1/'+path,{...opt,headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',...(opt.headers||{})}}).then(r=>{if(!r.ok)throw r;return r.status===201||r.status===204?null:r.json()});
-let myName='';try{myName=localStorage.getItem('kgsName')||''}catch(e){}
+const params=new URLSearchParams(location.search);
+let challenge=null;{const q=params.get('q');if(q){challenge={cat:catOf(params.get('c')||'kgs')[0],idx:q.split('.').map(Number),score:params.has('s')?+params.get('s'):null,name:(params.get('n')||'').slice(0,20)}}}
+let myName='',lastCat='kgsc',lastN='5';try{myName=localStorage.getItem('kgsName')||'';lastCat=localStorage.getItem('dgCat')||lastCat;lastN=localStorage.getItem('dgN')||lastN}catch(e){}
 let nbTags=[];
-const LIMIT=180;let timerId=null,endAt=0;let mode='',qs=[],qi=0,results=[],key='',pts=[],closed=false,revealed=false,best=0,tag=null,firstSym;
-try{best=Number(localStorage.getItem('kgsMapAvg')||0)}catch(e){}
+const LIMIT=180;let timerId=null,endAt=0;let region='kagoshima',cat='kgsc',mode='',qs=[],qi=0,results=[],key='',pts=[],closed=false,revealed=false,best={},tag=null,firstSym;
+try{best=JSON.parse(localStorage.getItem('dgBest')||'{}')}catch(e){}
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 const fc=f=>({type:'FeatureCollection',features:f});
 const ringLL=r=>{const c=r.map(p=>[p[1],p[0]]);c.push(c[0]);return c};
 
-map.on('load',()=>{
-  // 町名・地名のラベルを消し、残りのラベルを日本語に
+let mapStyle='liberty',ansData=fc([]),nbData=fc([]),nbOn=false;try{mapStyle=localStorage.getItem('dgMap')||'liberty'}catch(e){}
+const OFM='https://tiles.openfreemap.org/styles/';
+const RASTER={photo:['https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',18],gsistd:['https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',18],gsipale:['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',18],old:['https://cyberjapandata.gsi.go.jp/xyz/gazo1/{z}/{x}/{y}.jpg',17]};
+function setupLayers(){
+  firstSym=null;
   for(const l of map.getStyle().layers){
     if(l.type!=='symbol')continue;
     if(!firstSym)firstSym=l.id;
     if(l['source-layer']==='place'||/^(place|label_)/.test(l.id)){map.setLayoutProperty(l.id,'visibility','none');continue}
     if(map.getLayoutProperty(l.id,'text-field'))map.setLayoutProperty(l.id,'text-field',['coalesce',['get','name:ja'],['get','name']]);
   }
-  map.addSource('photo',{type:'raster',tiles:['https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg'],tileSize:256,maxzoom:18});
-  map.addLayer({id:'photo',type:'raster',source:'photo',layout:{visibility:'none'}},firstSym);
-  map.addSource('nb',{type:'geojson',data:fc([])});
-  map.addLayer({id:'nb-l',type:'line',source:'nb',paint:{'line-color':'#555','line-width':1.5,'line-dasharray':[3,2],'line-opacity':0}});
-  map.addSource('ans',{type:'geojson',data:fc([])});
-  map.addLayer({id:'ans-f',type:'fill',source:'ans',paint:{'fill-color':'#d8321f','fill-opacity':.15}});
-  map.addLayer({id:'ans-l',type:'line',source:'ans',paint:{'line-color':'#d8321f','line-width':3}});
+  const R=RASTER[mapStyle];
+  if(R){map.addSource('ras',{type:'raster',tiles:[R[0]],tileSize:256,maxzoom:R[1],attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'});
+    const gsi=mapStyle.startsWith('gsi');
+    map.addLayer({id:'ras',type:'raster',source:'ras'},gsi?undefined:firstSym);
+    if(gsi)for(const l of map.getStyle().layers)if(l.type==='symbol')map.setLayoutProperty(l.id,'visibility','none')}
+  map.addSource('nb',{type:'geojson',data:nbData});
+  map.addLayer({id:'nb-l',type:'line',source:'nb',paint:{'line-color':'#555','line-width':1.5,'line-dasharray':[3,2],'line-opacity':nbOn?.7:0}});
+  map.addSource('ans',{type:'geojson',data:ansData});
+  map.addLayer({id:'ans-f',type:'fill',source:'ans',paint:{'fill-color':'#d8321f','fill-opacity':.22}});
+  map.addLayer({id:'ans-l',type:'line',source:'ans',paint:{'line-color':'#d8321f','line-width':4}});
   map.addSource('me',{type:'geojson',data:fc([])});
   map.addLayer({id:'me-f',type:'fill',source:'me',filter:['==','$type','Polygon'],paint:{'fill-color':'#2f6bff','fill-opacity':.15}});
   map.addLayer({id:'me-l',type:'line',source:'me',filter:['!=','$type','Point'],paint:{'line-color':'#2f6bff','line-width':3}});
   map.addLayer({id:'me-p',type:'circle',source:'me',filter:['==','$type','Point'],paint:{'circle-radius':['case',['get','first'],8,5],'circle-color':['case',['get','first'],'#fff','#2f6bff'],'circle-stroke-color':'#2f6bff','circle-stroke-width':3}});
-  startScreen();
-});
-$('layer').onchange=e=>map.setLayoutProperty('photo','visibility',e.target.value==='photo'?'visible':'none');
+  redraw();
+}
+let started=false;
+map.on('style.load',()=>{setupLayers();if(!started){started=true;startScreen()}});
+const styleUrl=v=>OFM+(v==='positron'||v==='bright'?v:'liberty');
+$('layer').value=mapStyle;
+$('layer').onchange=e=>{mapStyle=e.target.value;try{localStorage.setItem('dgMap',mapStyle)}catch(x){}map.setStyle(styleUrl(mapStyle),{diff:false})};
 
+function begin(c,list,m){cat=c;region=catOf(c)[1];mode=m;$('ov').hidden=true;$('qName').textContent='読み込み中…';
+  loadRegion(region).then(d=>{qs=typeof list==='function'?list(d):list;qi=0;results=[];newRound()}).catch(()=>{$('ov').hidden=false;$('card').innerHTML='<h1>町のデータを読み込めませんでした</h1><p>ページを開き直してください。</p>'})}
 function startScreen(){
   $('ov').hidden=false;
+  const b=best[lastCat];
   $('card').innerHTML=`<h1>Danchi Guessor</h1><p style="margin:-4px 0 8px;font-weight:700;color:#d8321f">ダンチゲッサー｜団地の境界線当てゲーム</p>
-  <p>道路やお店・学校の名前を手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>で、時間が来るとそこまでの線で採点します。</p>
-  <div class="opt"><label for="setSel">出題</label><select id="setSel"><option value="res">市街地・住宅街・団地（${RES.length}の町からランダム）</option><option value="first">原良・薬師・西田・東千石町・皇徳寺台</option></select></div><div class="opt"><label for="nSel">問題数</label><select id="nSel"><option>5</option><option>10</option><option>20</option></select></div>
-  ${best?`<p>これまでの最高：1問あたり平均${best}点</p>`:''}
+  <p>道路やお店・学校の名前を手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>。</p>
+  <div class="opt"><label for="setSel">出題エリア</label><select id="setSel">${CATS.map(c=>`<option value="${c[0]}"${c[0]===lastCat?' selected':''}>${c[2]}</option>`).join('')}</select></div>
+  <div class="opt"><label for="nSel">問題数</label><select id="nSel">${['5','10','20'].map(n=>`<option${n===lastN?' selected':''}>${n}</option>`).join('')}</select></div>
+  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><input id="nm0" maxlength="20" value="${esc(myName)}" placeholder="例：武岡の主"></div>
+  <p id="bestLine">${b?`このエリアの最高：1問あたり平均${b}点`:''}</p>
   <button class="go" id="go" style="width:100%">スタート</button>
+  <button id="rankBtn" style="width:100%;margin-top:10px">ランキングを見る</button>
   <p class="note">お店や建物の名前は拡大すると増えます。バス停や施設名に町名が入っていることもあるので、それも手がかりです。</p>`;
-  if(challenge){$('card').insertAdjacentHTML('afterbegin',`<div class="chal"><b>挑戦状が届きました</b><br>${challenge.name?esc(challenge.name)+'さんから':'友だちから'}・${challenge.towns.length}問${challenge.score!=null?`・相手は<b>${challenge.score}点</b>`:''}<br><button class="go" id="goChal" style="width:100%;margin-top:8px">この問題で勝負する</button></div>`);
-    $('goChal').onclick=()=>{qs=challenge.towns.slice();mode='chal';qi=0;results=[];$('ov').hidden=true;newRound()}}
-  $('card').insertAdjacentHTML('beforeend','<button id="rankBtn" style="width:100%;margin-top:10px">ランキングを見る</button>');$('rankBtn').onclick=()=>showRanking(5);
-  $('go').onclick=()=>{const s=$('setSel').value,n=+$('nSel').value;qs=s==='first'?shuffle(FIRST):shuffle(RES).slice(0,n);mode=s==='first'?'first':'res'+n;qi=0;results=[];$('ov').hidden=true;newRound()};
+  $('setSel').onchange=()=>{const v=best[$('setSel').value];$('bestLine').textContent=v?`このエリアの最高：1問あたり平均${v}点`:''};
+  if(challenge){$('card').insertAdjacentHTML('afterbegin',`<div class="chal"><b>挑戦状が届きました</b><br>${challenge.name?esc(challenge.name)+'さんから':'友だちから'}・${esc(catOf(challenge.cat)[2])}・${challenge.idx.length}問${challenge.score!=null?`・相手は<b>${challenge.score}点</b>`:''}<br><button class="go" id="goChal" style="width:100%;margin-top:8px">この問題で勝負する</button></div>`);
+    $('goChal').onclick=()=>begin(challenge.cat,d=>challenge.idx.map(i=>d.keys[i]).filter(Boolean),'chal')}
+  $('rankBtn').onclick=()=>showRanking($('setSel').value,+$('nSel').value);
+  const needName=()=>{const v=$('nm0').value.trim().slice(0,20);if(!v){$('nm0').focus();$('nm0').style.borderColor='#d8321f';$('nm0').placeholder='ニックネームを入れてからスタート';return false}myName=v;try{localStorage.setItem('kgsName',v)}catch(e){}return true};
+  if($('goChal')){const g=$('goChal').onclick;$('goChal').onclick=()=>{if(needName())g()}}
+  $('go').onclick=()=>{if(!needName())return;const c=$('setSel').value,n=$('nSel').value;lastCat=c;lastN=n;try{localStorage.setItem('dgCat',c);localStorage.setItem('dgN',n)}catch(e){}
+    begin(c,d=>shuffle(d.cat[c]||[]).slice(0,+n),'rank'+n)};
 }
 function bounds(rings){const b=new maplibregl.LngLatBounds();for(const r of rings)for(const p of r)b.extend([p[1],p[0]]);return b}
 function newRound(){
-  key=qs[qi];$('qName').textContent='読み込み中…';$('ok').disabled=true;
+  key=qs[qi];$('qName').textContent='読み込み中…';$('qWard').textContent='';$('ok').disabled=true;
   loadTown(key).then(()=>{if(qs[qi]===key)startRound();if(qs[qi+1])loadTown(qs[qi+1])}).catch(()=>{$('msg').textContent='境界データを読み込めませんでした。ページを開き直してください。'});
 }
-function startRound(){map.getSource('nb').setData(fc([]));map.setPaintProperty('nb-l','line-opacity',0);for(const m of nbTags)m.remove();nbTags=[];$('pop').hidden=true;pts=[];closed=false;revealed=false;if(tag){tag.remove();tag=null}
-  map.getSource('ans').setData(fc([]));redraw();
+function startRound(){nbData=fc([]);nbOn=false;ansData=fc([]);map.getSource('nb').setData(nbData);map.setPaintProperty('nb-l','line-opacity',0);for(const m of nbTags)m.remove();nbTags=[];$('pop').hidden=true;pts=[];closed=false;revealed=false;if(tag){tag.remove();tag=null}
+  map.getSource('ans').setData(ansData);redraw();
   const b=bounds(TOWNS[key]),c=b.getCenter(),span=Math.max(b.getNorth()-b.getSouth(),b.getEast()-b.getWest(),.006)*2.2;
   const x=c.lng+(Math.random()-.5)*span*.5,y=c.lat+(Math.random()-.5)*span*.5;
   map.fitBounds([[x-span/2,y-span/2],[x+span/2,y+span/2]],{duration:0});
-  $('qName').textContent=key;$('qNo').textContent=`第${qi+1}問 / ${qs.length}`;
+  $('qName').textContent=disp(key);$('qWard').textContent=ward(key)?'（'+ward(key)+'）':'';$('qNo').textContent=`第${qi+1}問 / ${qs.length}`;
   $('msg').textContent='境界の角をクリックして点を打つ。最初の点を押すと閉じます。';
   for(const id of ['undo','clear'])$(id).hidden=false;$('ok').textContent='これで決定';upd();
   endAt=Date.now()+LIMIT*1000;clearInterval(timerId);tick();timerId=setInterval(tick,250);
@@ -137,11 +164,11 @@ function redraw(){
   const f=[],ll=pts.map(p=>[p[1],p[0]]);
   if(pts.length>1)f.push(closed||revealed?{type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[[...ll,ll[0]]]}}:{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:ll}});
   if(!revealed)ll.forEach((c,i)=>f.push({type:'Feature',properties:{first:i===0},geometry:{type:'Point',coordinates:c}}));
-  map.getSource('me').setData(fc(f));
+  const src=map.getSource('me');if(src)src.setData(fc(f));
 }
 function upd(){$('ok').disabled=!revealed&&pts.length<3;$('undo').disabled=!pts.length;$('clear').disabled=!pts.length}
 map.on('click',e=>{
-  if(revealed||closed||!$('ov').hidden)return;
+  if(revealed||closed||!$('ov').hidden||!key)return;
   if(pts.length>=3){const f=map.project([pts[0][1],pts[0][0]]);if(Math.hypot(f.x-e.point.x,f.y-e.point.y)<14){closed=true;redraw();upd();return}}
   pts.push([e.lngLat.lat,e.lngLat.lng]);redraw();upd();
 });
@@ -150,8 +177,8 @@ $('clear').onclick=()=>{pts=[];closed=false;redraw();upd()};
 
 function judge(){
   const t=TOWNS[key],all=t.flat().concat(pts),k=Math.cos(all[0][0]*Math.PI/180),P=p=>[p[1]*k,-p[0]],xy=all.map(P),N=500;
-  const minx=Math.min(...xy.map(p=>p[0])),miny=Math.min(...xy.map(p=>p[1]));
-  const s=Math.max(Math.max(...xy.map(p=>p[0]))-minx,Math.max(...xy.map(p=>p[1]))-miny)*1.02;
+  let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;for(const p of xy){if(p[0]<minx)minx=p[0];if(p[1]<miny)miny=p[1];if(p[0]>maxx)maxx=p[0];if(p[1]>maxy)maxy=p[1]}
+  const s=Math.max(maxx-minx,maxy-miny)*1.02;
   const f=p=>{const q=P(p);return[(q[0]-minx)/s*N,(q[1]-miny)/s*N]};
   const mk=rings=>{const c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');x.beginPath();
     for(const r of rings){r.forEach((p,i)=>{const q=f(p);i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1])});x.closePath()}x.fill('evenodd');return x.getImageData(0,0,N,N).data};
@@ -159,31 +186,31 @@ function judge(){
   for(let i=3;i<A.length;i+=4){const a=A[i]>127,b=B[i]>127;if(a&&b)i1++;if(a||b)u++;if(a)ta++;if(b)tb++}
   return{iou:u?i1/u:0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
 }
-const TITLES=[[90,['桜島級の土地勘','自治会長','境界の覇王']],[75,['天文館の主','回覧板マスター','領地奉行']],[55,['地元のおじさん','ゴミ当番ベテラン','城代家老']],[35,['市電ユーザー','引っ越してきたばかり','足軽大将']],[10,['観光客','表札を見て回る人','足軽']],[0,['県外から来た人','迷子の配達員','迷い武者']]];
-const titleOf=s=>{const t=TITLES.find(x=>s>=x[0])[1];return t[Math.random()*t.length|0]};
-const rankOf=s=>TITLES.find(x=>s>=x[0])[1][0];
+const BANDS=[90,75,55,35,10,0];
+const titlesFor=()=>{const L=REG[region].local;return[[L[0],'自治会長','境界の覇王'],[L[1],'回覧板マスター','領地奉行'],['地元のおじさん','ゴミ当番ベテラン','城代家老'],[L[2],'引っ越してきたばかり','足軽大将'],['観光客','表札を見て回る人','足軽'],['よそから来た人','迷子の配達員','迷い武者']]};
+const titleOf=s=>{const t=titlesFor()[BANDS.findIndex(b=>s>=b)];return t[Math.random()*t.length|0]};
 const colorOf=s=>s>=90?'#c9a227':s>=75?'#d8321f':s>=55?'#e8752a':s>=35?'#2f6bff':'#6b7477';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function countUp(el,to){if(reduce){el.textContent=to;return}const t0=performance.now(),d=900;const f=t=>{const p=Math.min(1,(t-t0)/d),e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e);if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
 $('ok').onclick=()=>{if(revealed){qi++;return qi<qs.length?newRound():finish()}submit(false)};
 function showNeighbors(k){
-  const [x,y,sz]=ALL[k],R=Math.max(sz*1.4,.012),cos=Math.cos(y*Math.PI/180);
-  const near=Object.keys(ALL).filter(n=>n!==k&&Math.hypot((ALL[n][0]-x)*cos,ALL[n][1]-y)<R+ALL[n][2]*.5).slice(0,14);
+  const M=DATA[region].map,{x,y,s:sz}=M[k],R=Math.max(sz*1.4,.008),cos=Math.cos(y*Math.PI/180);
+  const near=Object.keys(M).filter(n=>n!==k&&Math.hypot((M[n].x-x)*cos,M[n].y-y)<R+M[n].s*.5).sort((a,b)=>Math.hypot((M[a].x-x)*cos,M[a].y-y)-Math.hypot((M[b].x-x)*cos,M[b].y-y)).slice(0,16);
   Promise.all(near.map(n=>loadTown(n).then(r=>[n,r]).catch(()=>null))).then(list=>{
     if(key!==k||!revealed)return;const f=[];
     for(const it of list){if(!it)continue;const [n,rings]=it;for(const r of rings)f.push({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:ringLL(r)}});
-      let best=null,bd=1e9;for(const r of rings)for(const p of r){const d=Math.hypot((p[1]-x)*cos,p[0]-y);if(d<bd){bd=d;best=p}}
-      const t=Math.min(.35,(sz*.35)/(Math.hypot((ALL[n][0]-best[1])*cos,ALL[n][1]-best[0])||1)),lng=best[1]+(ALL[n][0]-best[1])*t,lat=best[0]+(ALL[n][1]-best[0])*t;
-      const el=document.createElement('div');el.className='nbtag';el.textContent=n;nbTags.push(new maplibregl.Marker({element:el}).setLngLat([lng,lat]).addTo(map))}
-    map.getSource('nb').setData(fc(f));map.setPaintProperty('nb-l','line-opacity',.7)});
+      let bp=null,bd=1e9;for(const r of rings)for(const p of r){const d=Math.hypot((p[1]-x)*cos,p[0]-y);if(d<bd){bd=d;bp=p}}
+      const t=Math.min(.35,(sz*.35)/(Math.hypot((M[n].x-bp[1])*cos,M[n].y-bp[0])||1)),lng=bp[1]+(M[n].x-bp[1])*t,lat=bp[0]+(M[n].y-bp[0])*t;
+      const el=document.createElement('div');el.className='nbtag';el.textContent=disp(n);nbTags.push(new maplibregl.Marker({element:el}).setLngLat([lng,lat]).addTo(map))}
+    nbData=fc(f);nbOn=true;map.getSource('nb').setData(nbData);map.setPaintProperty('nb-l','line-opacity',.7)});
 }
 function submit(timeout){
   clearInterval(timerId);
   const r=pts.length>=3?judge():{iou:0,cover:0,extra:0},s=Math.round(r.iou*100);results.push({name:key,s});revealed=true;closed=true;redraw();
-  map.getSource('ans').setData(fc(TOWNS[key].map(r=>({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ringLL(r)]}}))));
+  ansData=fc(TOWNS[key].map(r=>({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ringLL(r)]}})));map.getSource('ans').setData(ansData);
   if(!reduce){let k=0;const a=()=>{k=Math.min(1,k+.04);map.setPaintProperty('ans-f','fill-opacity',.22*k);map.setPaintProperty('ans-l','line-width',1+4*k);if(k<1)requestAnimationFrame(a)};map.setPaintProperty('ans-f','fill-opacity',0);setTimeout(a,700)}
   setTimeout(()=>showNeighbors(key),reduce?0:1500);
-  const b=bounds(TOWNS[key]),el=document.createElement('div');el.innerHTML='<div class="stamp"><span>'+esc(key)+'</span></div>';
+  const b=bounds(TOWNS[key]),el=document.createElement('div');el.innerHTML='<div class="stamp"><span>'+esc(disp(key))+'</span></div>';
   tag=new maplibregl.Marker({element:el}).setLngLat(b.getCenter()).addTo(map);
   for(const p of pts)b.extend([p[1],p[0]]);map.fitBounds(b,{padding:{top:60,bottom:200,left:40,right:40},duration:reduce?0:1300,curve:1.6});
   const ttl=titleOf(s);results[results.length-1].t=ttl;
@@ -192,36 +219,35 @@ function submit(timeout){
   pop.hidden=true;setTimeout(()=>{pop.hidden=false;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go');countUp($('scN'),s);setTimeout(()=>{pop.querySelector('.ttl').classList.add('in')},reduce?0:950)},reduce?0:1100);
   for(const id of ['undo','clear'])$(id).hidden=true;$('ok').textContent=qi+1<qs.length?'次へ':'結果を見る';upd();
 }
-function showRanking(n,me,myTot){
+function showRanking(c,n,me,myTot){
   $('ov').hidden=false;
   const tabs=[5,10,20].map(k=>`<button class="tab${k===n?' on':''}" data-n="${k}">${k}問</button>`).join('');
-  $('card').innerHTML=`<h1>ランキング</h1><div class="row">${tabs}</div><div id="rk">${SB_URL?'読み込み中…':'ランキングはまだ準備中です'}</div><button id="back" style="width:100%;margin-top:10px">戻る</button>`;
-  $('back').onclick=startScreen;for(const b of document.querySelectorAll('.tab'))b.onclick=()=>showRanking(+b.dataset.n);
-  if(!SB_URL)return;
-  sb(`scores?select=name,total,created_at&n=eq.${n}&order=total.desc,created_at.asc&limit=30`).then(rows=>{
+  $('card').innerHTML=`<h1>ランキング</h1><div class="opt"><select id="rkCat" aria-label="エリア">${CATS.map(x=>`<option value="${x[0]}"${x[0]===c?' selected':''}>${x[2]}</option>`).join('')}</select></div><div class="row">${tabs}</div><div id="rk">読み込み中…</div><button id="back" style="width:100%;margin-top:10px">戻る</button>`;
+  $('back').onclick=startScreen;$('rkCat').onchange=()=>showRanking($('rkCat').value,n);for(const b of document.querySelectorAll('.tab'))b.onclick=()=>showRanking($('rkCat').value,+b.dataset.n);
+  sb(`scores?select=name,total,created_at&cat=eq.${c}&n=eq.${n}&order=total.desc,created_at.asc&limit=30`).then(rows=>{
     $('rk').innerHTML=rows.length?`<table>${rows.map((r,i)=>`<tr${me&&r.name===me&&r.total===myTot?' class="me"':''}><td>${i+1}位</td><td>${esc(r.name)}</td><td class="n">${r.total}点</td></tr>`).join('')}</table>`:'<p>まだ誰も登録していません。1番乗りのチャンス！</p>'})
   .catch(()=>{$('rk').textContent='ランキングを読み込めませんでした'});
 }
 function finish(){$('pop').hidden=true;
-  const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),nb=avg>best;if(nb){best=avg;try{localStorage.setItem('kgsMapAvg',avg)}catch(e){}}
+  const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),nb=avg>(best[cat]||0);if(nb){best[cat]=avg;try{localStorage.setItem('dgBest',JSON.stringify(best))}catch(e){}}
   $('ov').hidden=false;
-  $('card').innerHTML=`<h1>結果</h1><div class="big">${tot}点</div><p class="bigttl">総合称号「${esc(titleOf(avg))}」</p><p>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
-  <table>${results.map(r=>`<tr><td>${esc(r.name)}</td><td class="n">${r.s}点</td><td class="tt">${esc(r.t||'')}</td></tr>`).join('')}</table>
+  $('card').innerHTML=`<h1>結果</h1><p class="note" style="margin:0 0 6px">${esc(catOf(cat)[2])}</p><div class="big">${tot}点</div><p class="bigttl">総合称号「${esc(titleOf(avg))}」</p><p>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
+  <table>${results.map(r=>`<tr><td>${esc(disp(r.name))}${ward(r.name)?`<small style="color:#888">（${esc(ward(r.name))}）</small>`:''}</td><td class="n">${r.s}点</td><td class="tt">${esc(r.t||'')}</td></tr>`).join('')}</table>
   ${challenge&&mode==='chal'&&challenge.score!=null?`<p class="vs">${tot>challenge.score?'勝ち！':tot<challenge.score?'負け…':'引き分け'}　あなた ${tot}点 vs ${challenge.name?esc(challenge.name):'相手'} ${challenge.score}点</p>`:''}
-  <div class="opt"><label for="nm">ニックネーム（勝負・ランキング用）</label><input id="nm" maxlength="20" value="${esc(myName)}" placeholder="例：武岡の主"></div>
   <button class="go" id="share" style="width:100%">この問題で勝負する（URLを作る）</button>
   <div id="shareBox" hidden><input id="shareUrl" readonly><div class="row"><button id="copy">コピー</button><a id="line" class="btn" target="_blank" rel="noopener">LINEで送る</a></div></div>
-  ${SB_URL&&/^res(5|10|20)$/.test(mode)?'<button id="reg" style="width:100%;margin-top:8px">ランキングに登録</button>':''}
   <p id="regMsg" class="note"></p>
+  <button id="rankBtn2" style="width:100%;margin-top:8px">ランキングを見る</button>
   <button id="again" style="width:100%;margin-top:8px">もう一度</button>`;
   $('again').onclick=()=>{challenge=null;history.replaceState(null,'',location.pathname);startScreen()};
-  const nm=()=>{myName=$('nm').value.trim().slice(0,20);try{localStorage.setItem('kgsName',myName)}catch(e){}return myName};
-  $('share').onclick=()=>{const u=new URL(location.pathname,location.origin);u.searchParams.set('q',qs.map(t=>RES.indexOf(t)).join('.'));u.searchParams.set('s',tot);if(nm())u.searchParams.set('n',myName);
-    $('shareUrl').value=u.toString();$('line').href='https://line.me/R/msg/text/?'+encodeURIComponent(`Danchi Guessor（団地の境界線当てゲーム）で${tot}点だった。同じ問題で勝負！ `+u);$('shareBox').hidden=false};
+  const nm=()=>myName;$('rankBtn2').onclick=()=>showRanking(cat,/^rank/.test(mode)?results.length:5,myName,tot);
+  $('share').onclick=()=>{const u=new URL(location.pathname,location.origin),K=DATA[region].keys;u.searchParams.set('c',cat);u.searchParams.set('q',qs.map(t=>K.indexOf(t)).join('.'));u.searchParams.set('s',tot);if(nm())u.searchParams.set('n',myName);
+    $('shareUrl').value=u.toString();$('line').href='https://line.me/R/msg/text/?'+encodeURIComponent(`Danchi Guessor（${catOf(cat)[2]}）で${tot}点だった。同じ問題で勝負！ `+u);$('shareBox').hidden=false};
   $('copy').onclick=()=>{navigator.clipboard.writeText($('shareUrl').value).then(()=>$('copy').textContent='コピーしました',()=>{$('shareUrl').select()})};
-  if($('reg'))$('reg').onclick=()=>{if(!nm()){$('regMsg').textContent='ニックネームを入れてください';return}
-    $('reg').disabled=true;sb('scores',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:myName,total:tot,n:results.length})})
-      .then(()=>showRanking(results.length,myName,tot)).catch(()=>{$('regMsg').textContent='登録できませんでした';$('reg').disabled=false})};
+  if(/^rank(5|10|20)$/.test(mode)&&myName){$('regMsg').textContent='ランキングに登録中…';
+    sb('scores',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:myName,total:tot,n:results.length,cat})})
+      .then(()=>sb(`scores?select=id&cat=eq.${cat}&n=eq.${results.length}&total=gt.${tot}`)).then(r=>{$('regMsg').innerHTML=`<b>${esc(myName)}</b> として登録しました。現在 <b>${r.length+1}位</b>`})
+      .catch(()=>{$('regMsg').textContent='ランキングに登録できませんでした'})}
 }
 setTimeout(()=>{if($('card').textContent.includes('読み込み中'))$('card').innerHTML='<h1>地図を読み込めませんでした</h1><p>インターネットにつながっているか確認して、ページを開き直してください。</p>'},20000);
 }
