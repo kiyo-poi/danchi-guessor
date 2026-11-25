@@ -106,6 +106,10 @@ const loadTown=k=>{if(TOWNS[k])return Promise.resolve(TOWNS[k]);const t=DATA[reg
   return TOWNS[k]=rings})};
 const SB_URL='https://mzebygrmdgsjulxugtsi.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16ZWJ5Z3JtZGdzanVseHVndHNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU2MTQ5MzAsImV4cCI6MjExMTE5MDkzMH0.0xsdHqvrKKSspeJRCd7jpZ-FR8jO568O98bWqNIXrDY';
 const sb=(path,opt={})=>fetch(SB_URL+'/rest/v1/'+path,{...opt,headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',...(opt.headers||{})}}).then(r=>{if(!r.ok)throw r;return r.status===201||r.status===204?null:r.json()});
+// STG（/stg/ 以下で開いたとき）はランキングを別テーブルに分け、画面に目印を出す
+const STG=/\/stg\//.test(location.pathname),TBL=STG?'scores_stg':'scores';
+if(STG){document.title='[STG] '+document.title;const m=document.createElement('meta');m.name='robots';m.content='noindex';document.head.appendChild(m);
+  const t=document.createElement('div');t.textContent='STG（テスト用）';t.style.cssText='position:fixed;left:0;bottom:0;z-index:3000;background:#2f6bff;color:#fff;font-weight:900;font-size:12px;padding:2px 10px;border-top-right-radius:8px;pointer-events:none';document.body.appendChild(t)}
 const params=new URLSearchParams(location.search);
 let challenge=null;{const q=params.get('q');if(q){challenge={cat:catOf(params.get('c')||'kgs')[0],idx:q.split('.').map(Number),score:params.has('s')?+params.get('s'):null,name:(params.get('n')||'').slice(0,20)}}}
 let myName='',lastCat='kgsc',lastN='5';try{myName=localStorage.getItem('kgsName')||'';lastCat=localStorage.getItem('dgCat')||lastCat;lastN=localStorage.getItem('dgN')||lastN}catch(e){}
@@ -253,7 +257,7 @@ function showRanking(c,n,me,myTot){
   const tabs=[5,10,20].map(k=>`<button class="tab${k===n?' on':''}" data-n="${k}">${k}問</button>`).join('');
   $('card').innerHTML=`<h1>ランキング</h1><div class="opt"><select id="rkCat" aria-label="エリア">${CATS.map(x=>`<option value="${x[0]}"${x[0]===c?' selected':''}>${x[2]}</option>`).join('')}</select></div><div class="row">${tabs}</div><div id="rk">読み込み中…</div><button id="back" style="width:100%;margin-top:10px">戻る</button>`;
   $('back').onclick=startScreen;$('rkCat').onchange=()=>showRanking($('rkCat').value,n);for(const b of document.querySelectorAll('.tab'))b.onclick=()=>showRanking($('rkCat').value,+b.dataset.n);
-  sb(`scores?select=name,total,created_at&cat=eq.${c}&n=eq.${n}&order=total.desc,created_at.asc&limit=30`).then(rows=>{
+  sb(`${TBL}?select=name,total,created_at&cat=eq.${c}&n=eq.${n}&order=total.desc,created_at.asc&limit=30`).then(rows=>{
     $('rk').innerHTML=rows.length?`<table>${rows.map((r,i)=>`<tr${me&&r.name===me&&r.total===myTot?' class="me"':''}><td>${i+1}位</td><td>${esc(r.name)}</td><td class="n">${r.total}点</td></tr>`).join('')}</table>`:'<p>まだ誰も登録していません。1番乗りのチャンス！</p>'})
   .catch(()=>{$('rk').textContent='ランキングを読み込めませんでした'});
 }
@@ -274,8 +278,8 @@ function finish(){$('pop').hidden=true;bgmPlay('title');
     $('shareUrl').value=u.toString();$('line').href='https://line.me/R/msg/text/?'+encodeURIComponent(`Danchi Guessor（${catOf(cat)[2]}）で${tot}点だった。同じ問題で勝負！ `+u);$('shareBox').hidden=false};
   $('copy').onclick=()=>{navigator.clipboard.writeText($('shareUrl').value).then(()=>$('copy').textContent='コピーしました',()=>{$('shareUrl').select()})};
   if(/^rank(5|10|20)$/.test(mode)&&myName){$('regMsg').textContent='ランキングに登録中…';
-    sb('scores',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:myName,total:tot,n:results.length,cat})})
-      .then(()=>sb(`scores?select=id&cat=eq.${cat}&n=eq.${results.length}&total=gt.${tot}`)).then(r=>{$('regMsg').innerHTML=`<b>${esc(myName)}</b> として登録しました。現在 <b>${r.length+1}位</b>`})
+    sb(TBL,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:myName,total:tot,n:results.length,cat})})
+      .then(()=>sb(`${TBL}?select=id&cat=eq.${cat}&n=eq.${results.length}&total=gt.${tot}`)).then(r=>{$('regMsg').innerHTML=`<b>${esc(myName)}</b> として登録しました。現在 <b>${r.length+1}位</b>`})
       .catch(()=>{$('regMsg').textContent='ランキングに登録できませんでした'})}
 }
 setTimeout(()=>{if($('card').textContent.includes('読み込み中'))$('card').innerHTML='<h1>地図を読み込めませんでした</h1><p>インターネットにつながっているか確認して、ページを開き直してください。</p>'},20000);

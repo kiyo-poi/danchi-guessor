@@ -16,3 +16,9 @@
 - 航空写真：国土地理院
 - 町の境界：[Geolonia 領域データ](https://github.com/geolonia/japanese-boundaries)（平成27年国勢調査の町丁・字境界がもと。丁目はまとめて1つの町にしています）
 - 山手線・大阪環状線の位置：国土数値情報（鉄道データ）をもとにした [Jinshin-visualization](https://github.com/yutyan0119/Jinshin-visualization)
+
+STG（テスト用）環境
+- 本番：https://kiyo-poi.github.io/danchi-guessor/ （リポジトリ直下のファイル）
+- STG：https://kiyo-poi.github.io/danchi-guessor/stg/ （`stg/` フォルダのファイル）
+- 改善はまず `stg/` に入れてSTGで確認し、よければ `stg/` の中身を直下にコピーして本番に反映します
+- `index.html` は本番とSTGで同じ内容です。`/stg/` で開いたときだけ、ランキングの保存先が `scores_stg` テーブルに切り替わり、左下に「STG（テスト用）」と表示されます
