@@ -100,7 +100,7 @@ function bgmTick(){const S=SONGS[BGM.song];if(!S||!BGM.ctx)return;const sp=60/S.
     BGM.next+=sp;BGM.step++}}
 function bgmPlay(name){BGM.song=name;if(!BGM.on)return;bgmInit();if(!BGM.ctx)return;BGM.ctx.resume();BGM.step=0;BGM.next=BGM.ctx.currentTime+.05;clearInterval(BGM.timer);BGM.timer=setInterval(bgmTick,60)}
 function bgmStop(){clearInterval(BGM.timer);BGM.timer=null}
-function bgmToggle(){BGM.on=!BGM.on;try{localStorage.setItem('dgBgm',BGM.on?'on':'off')}catch(e){}bgmLabel();BGM.on?bgmPlay(BGM.song||'title'):bgmStop()}
+function bgmToggle(){BGM.on=!BGM.on;track('bgm_toggle',{on:BGM.on});try{localStorage.setItem('dgBgm',BGM.on?'on':'off')}catch(e){}bgmLabel();BGM.on?bgmPlay(BGM.song||'title'):bgmStop()}
 function bgmLabel(){for(const id of ['bgmBtn','bgmBtn2'])if($(id))$(id).textContent=BGM.on?'♪ BGM オン':'♪ BGM オフ'}
 document.addEventListener('pointerdown',()=>{if(BGM.on&&!BGM.timer&&BGM.song)bgmPlay(BGM.song)},{once:false});
 const disp=k=>k.split(' ').pop(),ward=k=>k.includes(' ')?k.split(' ')[0]:'';
@@ -125,6 +125,14 @@ const SB_URL='https://mzebygrmdgsjulxugtsi.supabase.co',SB_KEY='eyJhbGciOiJIUzI1
 const sb=(path,opt={})=>fetch(SB_URL+'/rest/v1/'+path,{...opt,headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',...(opt.headers||{})}}).then(r=>{if(!r.ok)throw r;return r.status===201||r.status===204?null:r.json()});
 // STG（/stg/ 以下で開いたとき）はランキングを別テーブルに分け、画面に目印を出す
 const STG=/\/stg\//.test(location.pathname),TBL=STG?'scores_stg':'scores';
+// ---- Googleアナリティクス（GA4）----
+// GA_ID に測定ID（G-から始まる文字列）を入れると計測が始まる。空のままなら何も送らない。
+// STG（/stg/）ではデバッグ扱いで送るので、GAの「DebugView」で確認でき、通常のレポートには混ざらない。
+const GA_ID='';
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+if(GA_ID){const g=document.createElement('script');g.async=true;g.src='https://www.googletagmanager.com/gtag/js?id='+GA_ID;document.head.appendChild(g);
+  gtag('js',new Date());gtag('config',GA_ID,STG?{debug_mode:true,env:'stg'}:{env:'prod'})}
+const track=(name,p={})=>{try{if(GA_ID)gtag('event',name,STG?{...p,debug_mode:true}:p)}catch(e){}};
 if(STG){document.title='[STG] '+document.title;const m=document.createElement('meta');m.name='robots';m.content='noindex';document.head.appendChild(m);
   const t=document.createElement('div');t.textContent='STG（テスト用）';t.style.cssText='position:fixed;left:50%;top:0;transform:translateX(-50%);z-index:3000;background:#2f6bff;color:#fff;font-weight:900;font-size:10px;line-height:1.2;padding:1px 10px;border-radius:0 0 8px 8px;pointer-events:none;white-space:nowrap';document.body.appendChild(t)}
 // 名前の持ち主を見分けるための合言葉（この端末だけに保存。同じ名前を他の人が使えないようにする）
@@ -185,9 +193,9 @@ let started=false;
 map.on('style.load',()=>{setupLayers();if(!started){started=true;startScreen()}});
 const styleUrl=v=>OFM+(v==='positron'||v==='bright'?v:'liberty');
 $('layer').value=mapStyle;bgmLabel();$('bgmBtn').onclick=bgmToggle;
-$('layer').onchange=e=>{mapStyle=e.target.value;try{localStorage.setItem('dgMap',mapStyle)}catch(x){}map.setStyle(styleUrl(mapStyle),{diff:false})};
+$('layer').onchange=e=>{mapStyle=e.target.value;track('map_style',{style:mapStyle});try{localStorage.setItem('dgMap',mapStyle)}catch(x){}map.setStyle(styleUrl(mapStyle),{diff:false})};
 
-function begin(c,list,m){spare=[];passMax=passLeft=0;bgmPlay('game');cat=c;region=catOf(c)[1];mode=m;$('ov').hidden=true;$('qName').textContent='読み込み中…';
+function begin(c,list,m){track('game_start',{area:c,mode:m});spare=[];passMax=passLeft=0;bgmPlay('game');cat=c;region=catOf(c)[1];mode=m;$('ov').hidden=true;$('qName').textContent='読み込み中…';
   loadSpots(region);loadRegion(region).then(d=>{qs=typeof list==='function'?list(d):list;qi=0;results=[];newRound()}).catch(()=>{$('ov').hidden=false;$('card').innerHTML='<h1>町のデータを読み込めませんでした</h1><p>ページを開き直してください。</p>'})}
 function startScreen(){
   $('ov').hidden=false;BGM.song='title';if(BGM.timer)bgmPlay('title');
@@ -262,7 +270,7 @@ function redraw(){
 function upd(){$('ok').disabled=!revealed&&pts.length<3;$('undo').disabled=!pts.length;$('clear').disabled=!pts.length;
   const b=$('pass');b.hidden=!passMax;b.disabled=revealed||!passLeft||!spare.length;b.textContent=`パス（残り${passLeft}回）`}
 // パス：点数はつけずに別の町と入れ替える（回数制限あり。挑戦状では使えない）
-$('pass').onclick=()=>{if(revealed||!passLeft||!spare.length||!$('ov').hidden)return;passLeft--;qs[qi]=spare.shift();clearInterval(timerId);pts=[];closed=false;redraw();upd();$('pass').disabled=true;newRound()};
+$('pass').onclick=()=>{if(revealed||!passLeft||!spare.length||!$('ov').hidden)return;track('pass_use',{area:cat,question_no:qi+1});passLeft--;qs[qi]=spare.shift();clearInterval(timerId);pts=[];closed=false;redraw();upd();$('pass').disabled=true;newRound()};
 map.on('click',e=>{
   if(revealed||closed||!$('ov').hidden||!key)return;
   if(pts.length>=3){const f=map.project([pts[0][1],pts[0][0]]);if(Math.hypot(f.x-e.point.x,f.y-e.point.y)<14){closed=true;redraw();upd();return}}
@@ -305,7 +313,7 @@ function showNeighbors(k){
 }
 function submit(timeout){
   clearInterval(timerId);
-  const r=pts.length>=3?judge():{iou:0,dice:0,cover:0,extra:0},s=Math.round(r.dice*100);results.push({name:key,s});revealed=true;closed=true;redraw();
+  const r=pts.length>=3?judge():{iou:0,dice:0,cover:0,extra:0},s=Math.round(r.dice*100);results.push({name:key,s});track('round_finish',{area:cat,score:s,timeout:!!timeout,question_no:qi+1});revealed=true;closed=true;redraw();
   ansData=fc(TOWNS[key].map(r=>({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ringLL(r)]}})));map.getSource('ans').setData(ansData);
   if(!reduce){let k=0;const a=()=>{k=Math.min(1,k+.04);map.setPaintProperty('ans-f','fill-opacity',.22*k);map.setPaintProperty('ans-l','line-width',1+4*k);if(k<1)requestAnimationFrame(a)};map.setPaintProperty('ans-f','fill-opacity',0);setTimeout(a,700)}
   setTimeout(()=>showNeighbors(key),reduce?0:1500);
@@ -318,7 +326,7 @@ function submit(timeout){
   pop.hidden=true;setTimeout(()=>{pop.hidden=false;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go');countUp($('scN'),s);setTimeout(()=>{pop.querySelector('.ttl').classList.add('in')},reduce?0:950)},reduce?0:1100);
   for(const id of ['undo','clear'])$(id).hidden=true;$('ok').textContent=qi+1<qs.length?'次へ':'結果を見る';upd();
 }
-function showRanking(c,n,me,myTot){
+function showRanking(c,n,me,myTot){track('ranking_view',{area:c,questions:n});
   $('ov').hidden=false;
   const tabs=[5,10].map(k=>`<button class="tab${k===n?' on':''}" data-n="${k}">${k}問</button>`).join('');
   $('card').innerHTML=`<h1>ランキング</h1><div class="opt"><select id="rkCat" aria-label="エリア">${CATS.map(x=>`<option value="${x[0]}"${x[0]===c?' selected':''}>${x[2]}</option>`).join('')}</select></div><div class="row">${tabs}</div><div id="rk">読み込み中…</div><button id="back" style="width:100%;margin-top:10px">戻る</button>`;
@@ -328,7 +336,7 @@ function showRanking(c,n,me,myTot){
   .catch(()=>{if($('rk'))$('rk').textContent='ランキングを読み込めませんでした'});
 }
 function finish(){$('pop').hidden=true;bgmPlay('title');
-  const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),pct=Math.round(tot/(results.length*100)*100),nb=avg>(best[cat]||0);if(nb){best[cat]=avg;try{localStorage.setItem('dgBest',JSON.stringify(best))}catch(e){}}
+  const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),pct=Math.round(tot/(results.length*100)*100),nb=avg>(best[cat]||0);track('game_finish',{area:cat,mode,questions:results.length,total:tot,percent:pct,title:overallOf(pct)});if(nb){best[cat]=avg;try{localStorage.setItem('dgBest',JSON.stringify(best))}catch(e){}}
   $('ov').hidden=false;
   $('card').innerHTML=`<h1>結果</h1><p class="note" style="margin:0 0 6px">${esc(catOf(cat)[2])}</p><div class="big">${tot}点</div><p class="bigttl">総合称号「${esc(overallOf(pct))}」</p><p class="pctline">達成率 <b>${pct}%</b></p><p>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
   <table>${results.map(r=>`<tr><td>${esc(disp(r.name))}${ward(r.name)?`<small style="color:#888">（${esc(ward(r.name))}）</small>`:''}</td><td class="n">${r.s}点</td><td class="tt">${esc(r.t||'')}</td></tr>`).join('')}</table>
@@ -340,7 +348,7 @@ function finish(){$('pop').hidden=true;bgmPlay('title');
   <button id="again" style="width:100%;margin-top:8px">もう一度</button>`;
   $('again').onclick=()=>{challenge=null;history.replaceState(null,'',location.pathname);startScreen()};
   const nm=()=>myName;$('rankBtn2').onclick=()=>showRanking(cat,/^rank/.test(mode)?results.length:5,myName,tot);
-  $('share').onclick=()=>{const u=new URL(location.pathname,location.origin),K=DATA[region].keys;u.searchParams.set('c',cat);u.searchParams.set('q',qs.map(t=>K.indexOf(t)).join('.'));u.searchParams.set('s',tot);if(nm())u.searchParams.set('n',myName);
+  $('share').onclick=()=>{track('share_create',{area:cat});const u=new URL(location.pathname,location.origin),K=DATA[region].keys;u.searchParams.set('c',cat);u.searchParams.set('q',qs.map(t=>K.indexOf(t)).join('.'));u.searchParams.set('s',tot);if(nm())u.searchParams.set('n',myName);
     $('shareUrl').value=u.toString();$('line').href='https://line.me/R/msg/text/?'+encodeURIComponent(`Danchi Guessor（${catOf(cat)[2]}）で${tot}点だった。同じ問題で勝負！ `+u);$('shareBox').hidden=false};
   $('copy').onclick=()=>{navigator.clipboard.writeText($('shareUrl').value).then(()=>$('copy').textContent='コピーしました',()=>{$('shareUrl').select()})};
   if(/^rank(5|10|20)$/.test(mode)&&myName){$('regMsg').textContent='ランキングに登録中…';
