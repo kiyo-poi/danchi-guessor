@@ -54,6 +54,7 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 .pinbox{margin-top:8px;background:#fff8e6;border:1.5px solid #e8b73a;border-radius:12px;padding:10px 12px}.pinbox p#pinMsg{margin:0;font-size:14px}#pin:not(:placeholder-shown){letter-spacing:.3em;font-size:22px}
 .seg{display:flex;gap:8px}.seg button{flex:1}.seg button.on{border-color:#d8321f;background:#fff3f0;color:#d8321f}
 .big2{width:100%;min-height:56px;font-size:20px;margin-top:6px;box-shadow:0 4px 0 #a82416}.big2:active{transform:translateY(2px);box-shadow:0 2px 0 #a82416}
+.pctline{margin:-4px 0 4px;font-size:15px;color:#555}.pctline b{color:#d8321f;font-size:18px}
 .bestline{margin:8px 0 0;font-size:13px;color:#666;text-align:center}.bestline:empty{display:none}
 .tools{display:flex;gap:8px;margin-top:12px}.tools button{flex:1;font-size:14px;padding:0 6px}
 .how{margin-top:12px;font-size:13px;color:#555}.how summary{cursor:pointer;font-weight:700;padding:6px 0}.how ol{margin:4px 0 0;padding-left:20px}.how li{margin:3px 0}
@@ -283,6 +284,9 @@ function judge(){
 }
 const BANDS=[95,90,80,70,60,50,40,30,20,10,0];
 const titlesFor=()=>[['あなたこそが団地マスター'],['町内会の裏ボスおばちゃん'],['ベテランタクシー運転手'],['回覧板マスター'],['町内会の副会長'],['井戸端会議ママ'],['地元のおじさん'],['チャリ通の高校生'],['新人ウーバー配達員'],['降りるバス停を間違えた人'],['旅行先間違えた人']];
+// 全体スコアの称号：満点に対する割合（%）で決める。5問でも10問でも同じ基準
+const OVERALL=[[95,'生ける住宅地図'],[85,'地域の生き字引'],[75,'市役所の地図担当'],[65,'地元の不動産屋のエース'],[55,'町内会長'],[45,'ご近所の物知り'],[35,'住んで5年目の人'],[25,'地図アプリが手放せない人'],[15,'道を聞かれると困る人'],[5,'初めて来た観光客'],[0,'地図を逆さに持つ人']];
+const overallOf=pct=>OVERALL.find(([b])=>pct>=b)[1];
 const titleOf=s=>{const t=titlesFor()[BANDS.findIndex(b=>s>=b)];return t[Math.random()*t.length|0]};
 const colorOf=s=>s>=90?'#c9a227':s>=75?'#d8321f':s>=55?'#e8752a':s>=35?'#2f6bff':'#6b7477';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -324,9 +328,9 @@ function showRanking(c,n,me,myTot){
   .catch(()=>{if($('rk'))$('rk').textContent='ランキングを読み込めませんでした'});
 }
 function finish(){$('pop').hidden=true;bgmPlay('title');
-  const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),nb=avg>(best[cat]||0);if(nb){best[cat]=avg;try{localStorage.setItem('dgBest',JSON.stringify(best))}catch(e){}}
+  const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),pct=Math.round(tot/(results.length*100)*100),nb=avg>(best[cat]||0);if(nb){best[cat]=avg;try{localStorage.setItem('dgBest',JSON.stringify(best))}catch(e){}}
   $('ov').hidden=false;
-  $('card').innerHTML=`<h1>結果</h1><p class="note" style="margin:0 0 6px">${esc(catOf(cat)[2])}</p><div class="big">${tot}点</div><p class="bigttl">総合称号「${esc(titleOf(avg))}」</p><p>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
+  $('card').innerHTML=`<h1>結果</h1><p class="note" style="margin:0 0 6px">${esc(catOf(cat)[2])}</p><div class="big">${tot}点</div><p class="bigttl">総合称号「${esc(overallOf(pct))}」</p><p class="pctline">達成率 <b>${pct}%</b></p><p>（${results.length*100}点満点）　平均${avg}点${nb?'　自己ベスト更新！':''}</p>
   <table>${results.map(r=>`<tr><td>${esc(disp(r.name))}${ward(r.name)?`<small style="color:#888">（${esc(ward(r.name))}）</small>`:''}</td><td class="n">${r.s}点</td><td class="tt">${esc(r.t||'')}</td></tr>`).join('')}</table>
   ${challenge&&mode==='chal'&&challenge.score!=null?`<p class="vs">${tot>challenge.score?'勝ち！':tot<challenge.score?'負け…':'引き分け'}　あなた ${tot}点 vs ${challenge.name?esc(challenge.name):'相手'} ${challenge.score}点</p>`:''}
   <button class="go" id="share" style="width:100%">この問題で勝負する（URLを作る）</button>
