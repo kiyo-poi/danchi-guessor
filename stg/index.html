@@ -185,7 +185,7 @@ function startScreen(){
   <p class="lead">地図の上で町の境界を囲んで、本物とどれだけ重なるかを競います。</p>
   <div class="facts"><span>1問 2分</span><span>100点満点</span><span>町名は地図から消去</span></div>
   <div class="opt"><label for="setSel">出題エリア</label><select id="setSel">${CATS.map(c=>`<option value="${c[0]}"${c[0]===lastCat?' selected':''}>${c[2]}</option>`).join('')}</select></div>
-  <div class="opt"><label>問題数</label><input type="hidden" id="nSel" value="${['5','10','20'].includes(lastN)?lastN:'5'}"><div class="seg" id="nSeg">${['5','10','20'].map(n=>`<button type="button" data-n="${n}">${n}問</button>`).join('')}</div></div>
+  <div class="opt"><label>問題数</label><input type="hidden" id="nSel" value="${['5','10'].includes(lastN)?lastN:'5'}"><div class="seg" id="nSeg">${['5','10'].map(n=>`<button type="button" data-n="${n}">${n}問</button>`).join('')}</div></div>
   <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName)}" placeholder="ニックネームを入力" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">おまかせ</button></div><p id="nmMsg" class="note" style="margin:4px 0 0;color:#d8321f"></p><div id="pinBox" class="pinbox" hidden><p id="pinMsg"></p><div class="row" style="margin-top:6px"><input id="pin" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="4桁の数字" style="flex:1;font-size:18px"><button id="pinOk" type="button" class="go" style="flex:0 0 96px;padding:0 8px"></button></div><p id="pinErr" class="note" style="margin:4px 0 0;color:#d8321f"></p></div></div>
   <button class="go big2" id="go">スタート</button>
   <p id="bestLine" class="bestline">${b?`このエリアの最高：1問あたり平均${b}点`:''}</p>
@@ -271,8 +271,8 @@ function judge(){
   for(let i=3;i<A.length;i+=4){const a=A[i]>127,b=B[i]>127;if(a&&b)i1++;if(a||b)u++;if(a)ta++;if(b)tb++}
   return{iou:u?i1/u:0,dice:ta+tb?2*i1/(ta+tb):0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
 }
-const BANDS=[90,75,55,35,10,0];
-const titlesFor=()=>[['町内会の裏ボスおばちゃん','生き字引のおばあちゃん','在任30年の自治会長'],['ベテランタクシー運転手','回覧板マスター','ベテラン新聞配達員','町内会の副会長'],['地元のおじさん','町内の消防団員','地元の小学生','自転車通学の高校生'],['引っ越して3年目の人','宅配便の新人ドライバー'],['引っ越してきたばかりの人','表札を見て回る人','観光客'],['迷子の配達員','カーナビ頼みの人','よそから来た人','降りるバス停を間違えた人']];
+const BANDS=[90,80,75,55,35,10,0];
+const titlesFor=()=>[['町内会の裏ボスおばちゃん'],['神出鬼没野良猫'],['ベテランタクシー運転手','回覧板マスター'],['地元のおじさん','町内の消防団員','地元の小学生','自転車通学の高校生'],['引っ越して3年目の人','宅配便の新人ドライバー'],['引っ越してきたばかりの人','表札を見て回る人','観光客'],['迷子の配達員','カーナビ頼みの人','よそから来た人','降りるバス停を間違えた人']];
 const titleOf=s=>{const t=titlesFor()[BANDS.findIndex(b=>s>=b)];return t[Math.random()*t.length|0]};
 const colorOf=s=>s>=90?'#c9a227':s>=75?'#d8321f':s>=55?'#e8752a':s>=35?'#2f6bff':'#6b7477';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -306,7 +306,7 @@ function submit(timeout){
 }
 function showRanking(c,n,me,myTot){
   $('ov').hidden=false;
-  const tabs=[5,10,20].map(k=>`<button class="tab${k===n?' on':''}" data-n="${k}">${k}問</button>`).join('');
+  const tabs=[5,10].map(k=>`<button class="tab${k===n?' on':''}" data-n="${k}">${k}問</button>`).join('');
   $('card').innerHTML=`<h1>ランキング</h1><div class="opt"><select id="rkCat" aria-label="エリア">${CATS.map(x=>`<option value="${x[0]}"${x[0]===c?' selected':''}>${x[2]}</option>`).join('')}</select></div><div class="row">${tabs}</div><div id="rk">読み込み中…</div><button id="back" style="width:100%;margin-top:10px">戻る</button>`;
   $('back').onclick=startScreen;$('rkCat').onchange=()=>showRanking($('rkCat').value,n);for(const b of document.querySelectorAll('.tab'))b.onclick=()=>showRanking($('rkCat').value,+b.dataset.n);
   sb(`${TBL}?select=name,total,created_at&cat=eq.${c}&n=eq.${n}&order=total.desc,created_at.asc&limit=30`).then(rows=>{
