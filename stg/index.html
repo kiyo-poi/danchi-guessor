@@ -71,7 +71,7 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 {
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
-const REG={kagoshima:{c:[130.55,31.58],local:['桜島級の土地勘','天文館の主','市電ユーザー']},tokyo:{c:[139.74,35.69],local:['江戸っ子の土地勘','山手線の主','都バスユーザー']},osaka:{c:[135.51,34.68],local:['太閤級の土地勘','ミナミの主','環状線ユーザー']}};
+const REG={kagoshima:{c:[130.55,31.58]},tokyo:{c:[139.74,35.69]},osaka:{c:[135.51,34.68]}};
 const CATS=[['kgsc','kagoshima','鹿児島中心街（鹿児島中央駅から5km）'],['kgs','kagoshima','鹿児島市（市街地・住宅街・団地）'],['tky','tokyo','東京中心街（山手線の内側の有名な地名）'],['tk23','tokyo','東京23区（23区と有名な地名）'],['osc','osaka','大阪（24区と有名な地名）']];
 const catOf=id=>CATS.find(c=>c[0]===id)||CATS[0];
 const DATA={};// region -> {keys:[], map:{}, cat:{id:[keys]}}
@@ -254,7 +254,7 @@ function judge(){
   return{iou:u?i1/u:0,dice:ta+tb?2*i1/(ta+tb):0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
 }
 const BANDS=[90,75,55,35,10,0];
-const titlesFor=()=>{const L=REG[region].local;return[['団地のおばちゃん','何でも知ってる団地のおばちゃん','生き字引のおばあちゃん','在任30年の自治会長',L[0]],['井戸端会議の議長','回覧板マスター','ベテラン新聞配達員','町内会の副会長',L[1]],['地元のおじさん','ゴミ当番ベテラン','犬の散歩で顔が広い人','夏祭りの焼きそば係'],['引っ越して3年目の人','宅配便の新人ドライバー','回覧板を止めがちな人',L[2]],['引っ越してきたばかりの人','表札を見て回る人','観光客','隣の町の人'],['迷子の配達員','カーナビ頼みの人','よそから来た人','降りるバス停を間違えた人']]};
+const titlesFor=()=>[['団地のおばちゃん','何でも知ってる団地のおばちゃん','生き字引のおばあちゃん','在任30年の自治会長'],['井戸端会議の議長','回覧板マスター','ベテラン新聞配達員','町内会の副会長'],['地元のおじさん','ゴミ当番ベテラン','犬の散歩で顔が広い人','夏祭りの焼きそば係'],['引っ越して3年目の人','宅配便の新人ドライバー'],['引っ越してきたばかりの人','表札を見て回る人','観光客'],['迷子の配達員','カーナビ頼みの人','よそから来た人','降りるバス停を間違えた人']];
 const titleOf=s=>{const t=titlesFor()[BANDS.findIndex(b=>s>=b)];return t[Math.random()*t.length|0]};
 const colorOf=s=>s>=90?'#c9a227':s>=75?'#d8321f':s>=55?'#e8752a':s>=35?'#2f6bff':'#6b7477';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
