@@ -271,8 +271,8 @@ function judge(){
   for(let i=3;i<A.length;i+=4){const a=A[i]>127,b=B[i]>127;if(a&&b)i1++;if(a||b)u++;if(a)ta++;if(b)tb++}
   return{iou:u?i1/u:0,dice:ta+tb?2*i1/(ta+tb):0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
 }
-const BANDS=[90,80,75,55,35,10,0];
-const titlesFor=()=>[['町内会の裏ボスおばちゃん'],['神出鬼没野良猫'],['ベテランタクシー運転手','回覧板マスター'],['地元のおじさん','町内の消防団員','地元の小学生','自転車通学の高校生'],['引っ越して3年目の人','宅配便の新人ドライバー'],['引っ越してきたばかりの人','表札を見て回る人','観光客'],['迷子の配達員','カーナビ頼みの人','よそから来た人','降りるバス停を間違えた人']];
+const BANDS=[95,90,80,70,60,50,40,30,20,10,0];
+const titlesFor=()=>[['あなたこそが団地マスター'],['町内会の裏ボスおばちゃん'],['ベテランタクシー運転手'],['回覧板マスター'],['町内会の副会長'],['町内会の副会長'],['地元のおじさん'],['チャリ通の高校生'],['新人ウーバー配達員'],['降りるバス停を間違えた人'],['旅行先間違えた人']];
 const titleOf=s=>{const t=titlesFor()[BANDS.findIndex(b=>s>=b)];return t[Math.random()*t.length|0]};
 const colorOf=s=>s>=90?'#c9a227':s>=75?'#d8321f':s>=55?'#e8752a':s>=35?'#2f6bff':'#6b7477';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
