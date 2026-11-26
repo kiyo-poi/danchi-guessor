@@ -51,7 +51,7 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 .note{font-size:12px;color:#777;margin-top:12px}
 .hero{display:flex;gap:12px;align-items:center;margin-bottom:10px}.hero img{width:60px;height:60px;border-radius:14px;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}.hero h1{margin:0!important;font-size:26px!important}.hero p{margin:2px 0 0;font-size:13px;font-weight:700;color:#d8321f}
 .lead{margin:0 0 8px}.facts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}.facts span{background:#f3f3f1;border-radius:99px;padding:2px 10px;font-size:13px;font-weight:700;color:#444}
-.pinbox{margin-top:8px;background:#fff8e6;border:1.5px solid #e8b73a;border-radius:12px;padding:10px 12px}.pinbox p#pinMsg{margin:0;font-size:14px}
+.pinbox{margin-top:8px;background:#fff8e6;border:1.5px solid #e8b73a;border-radius:12px;padding:10px 12px}.pinbox p#pinMsg{margin:0;font-size:14px}#pin:not(:placeholder-shown){letter-spacing:.3em;font-size:22px}
 .seg{display:flex;gap:8px}.seg button{flex:1}.seg button.on{border-color:#d8321f;background:#fff3f0;color:#d8321f}
 .big2{width:100%;min-height:56px;font-size:20px;margin-top:6px;box-shadow:0 4px 0 #a82416}.big2:active{transform:translateY(2px);box-shadow:0 2px 0 #a82416}
 .bestline{margin:8px 0 0;font-size:13px;color:#666;text-align:center}.bestline:empty{display:none}
@@ -186,7 +186,7 @@ function startScreen(){
   <div class="facts"><span>1問 2分</span><span>100点満点</span><span>町名は地図から消去</span></div>
   <div class="opt"><label for="setSel">出題エリア</label><select id="setSel">${CATS.map(c=>`<option value="${c[0]}"${c[0]===lastCat?' selected':''}>${c[2]}</option>`).join('')}</select></div>
   <div class="opt"><label>問題数</label><input type="hidden" id="nSel" value="${['5','10','20'].includes(lastN)?lastN:'5'}"><div class="seg" id="nSeg">${['5','10','20'].map(n=>`<button type="button" data-n="${n}">${n}問</button>`).join('')}</div></div>
-  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName)}" placeholder="ニックネームを入力" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">おまかせ</button></div><p id="nmMsg" class="note" style="margin:4px 0 0;color:#d8321f"></p><div id="pinBox" class="pinbox" hidden><p id="pinMsg"></p><div class="row" style="margin-top:6px"><input id="pin" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="4桁の数字" style="flex:1;letter-spacing:.3em;font-size:20px"><button id="pinOk" type="button" class="go" style="flex:1.4;padding:0 8px"></button></div><p id="pinErr" class="note" style="margin:4px 0 0;color:#d8321f"></p></div></div>
+  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName)}" placeholder="ニックネームを入力" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">おまかせ</button></div><p id="nmMsg" class="note" style="margin:4px 0 0;color:#d8321f"></p><div id="pinBox" class="pinbox" hidden><p id="pinMsg"></p><div class="row" style="margin-top:6px"><input id="pin" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="4桁の数字" style="flex:1;font-size:18px"><button id="pinOk" type="button" class="go" style="flex:0 0 96px;padding:0 8px"></button></div><p id="pinErr" class="note" style="margin:4px 0 0;color:#d8321f"></p></div></div>
   <button class="go big2" id="go">スタート</button>
   <p id="bestLine" class="bestline">${b?`このエリアの最高：1問あたり平均${b}点`:''}</p>
   <div class="tools"><button id="rankBtn" type="button">🏆 ランキング</button><button id="bgmBtn2" type="button"></button></div>
@@ -200,7 +200,7 @@ function startScreen(){
   $('reroll').onclick=()=>{$('nm0').value=randName()};
   // ニックネーム確認：同じブラウザならそのまま。別のブラウザでは4桁の合言葉で本人確認
   let checking=false,pending=null,pinMode='';
-  const showPin=(mode,msg)=>{pinMode=mode;$('pinBox').hidden=false;$('pinMsg').textContent=msg;$('pin').value='';$('pinErr').textContent='';$('pinOk').textContent=mode==='need'?'この合言葉で使う':'この合言葉に決める';$('pin').focus()};
+  const showPin=(mode,msg)=>{pinMode=mode;$('pinBox').hidden=false;$('pinMsg').textContent=msg;$('pin').value='';$('pinErr').textContent='';$('pinOk').textContent='決定';$('pin').focus()};
   const hidePin=()=>{pinMode='';pending=null;if($('pinBox'))$('pinBox').hidden=true};
   const accept=v=>{$('nmMsg').textContent='';myName=v;try{localStorage.setItem('kgsName',v)}catch(e){}};
   const login=async(v,pin)=>{try{return await sb('rpc/name_login',{method:'POST',body:JSON.stringify({p_name:v,p_token:TOKEN,p_pin:pin||null})})}catch(e){return 'neterr'}};
