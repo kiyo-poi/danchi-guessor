@@ -110,7 +110,7 @@ const BASE='https://raw.githubusercontent.com/geolonia/japanese-boundaries/maste
 const TOWNS={};
 const files=t=>t.c.split(';').flatMap(g=>{const [a,b]=g.split(':');return b.split(',').map(s=>BASE+t.p+'/'+a+s+'.geojson')});
 const SPOTS={};
-const loadSpots=r=>(SPOTS[r]||(SPOTS[r]=fetch('spots-'+r+'.json').then(x=>x.json()).then(rows=>fc(rows.map(([name,x,y,k])=>({type:'Feature',properties:{name,k:k||''},geometry:{type:'Point',coordinates:[x,y]}}))))))
+const loadSpots=r=>(SPOTS[r]||(SPOTS[r]=fetch('spots-'+r+'.json').then(x=>x.json()).then(rows=>fc(rows.map(([name,x,y,ic,k])=>({type:'Feature',properties:{name,ic:ic||'attraction',k:k||''},geometry:{type:'Point',coordinates:[x,y]}}))))))
   .then(d=>{if(r===region){spotData=d;const s=map.getSource('spots');if(s)s.setData(d)}}).catch(()=>{});
 const WARDS={};
 const loadWards=r=>WARDS[r]||(WARDS[r]=fetch('wards-'+r+'.json').then(x=>x.json()));
@@ -155,10 +155,20 @@ function setupLayers(){
     const gsi=mapStyle.startsWith('gsi');
     map.addLayer({id:'ras',type:'raster',source:'ras'},gsi?undefined:firstSym);
     if(gsi)for(const l of map.getStyle().layers)if(l.type==='symbol')map.setLayoutProperty(l.id,'visibility','none')}
-  // 有名スポット（spots-地域.json）。お店などの細かい名前は消して、これだけをヒントとして出す。4番目に'ad'を入れると広告スポットとして色を変える
+  // 学校（高校・大学など）。町名が付きやすい公立の小学校・中学校と幼稚園・保育園は出さない
+  const SCH_OK=['附属','学院','学園','女子','高等学校','高校','中等教育','大学','ラ・サール','純心','義塾'];
+  const nm=['coalesce',['get','name:ja'],['get','name']];
+  const has=w=>['in',w,nm];
+  if(map.getSource('openmaptiles'))map.addLayer({id:'schools',type:'symbol',source:'openmaptiles','source-layer':'poi',minzoom:13,
+    filter:['all',['match',['get','class'],['school','college'],true,false],['!=',['get','subclass'],'kindergarten'],
+      ['!',['any',has('幼稚園'),has('保育'),has('こども園')]],
+      ['any',['!',['any',has('小学校'),has('中学校')]],['any',...SCH_OK.map(has)]]],
+    layout:{'icon-image':['match',['get','class'],'college','college','school'],'icon-size':.9,'text-field':nm,'text-font':['Noto Sans Regular'],'text-size':12,'text-anchor':'top','text-offset':[0,.8],'text-max-width':8,'text-optional':true},
+    paint:{'text-color':'#5b4a2e','text-halo-color':'#fff','text-halo-width':1.6}});
+  // 有名スポット（spots-地域.json の [名前,経度,緯度,アイコン]）。5番目に'ad'を入れると広告スポットとして金色で出す
   map.addSource('spots',{type:'geojson',data:spotData});
-  map.addLayer({id:'spots-c',type:'circle',source:'spots',paint:{'circle-radius':5,'circle-color':['case',['==',['get','k'],'ad'],'#c9a227','#1b1f21'],'circle-stroke-color':'#fff','circle-stroke-width':2}});
-  map.addLayer({id:'spots-t',type:'symbol',source:'spots',layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':14,'text-anchor':'top','text-offset':[0,.6],'text-allow-overlap':false,'text-optional':true},paint:{'text-color':['case',['==',['get','k'],'ad'],'#8a6d00','#1b1f21'],'text-halo-color':'#fff','text-halo-width':2}});
+  map.addLayer({id:'spots-bg',type:'circle',source:'spots',paint:{'circle-radius':11,'circle-color':['case',['==',['get','k'],'ad'],'#ffe58a','#fff'],'circle-stroke-color':['case',['==',['get','k'],'ad'],'#c9a227','#1b1f21'],'circle-stroke-width':1.5}});
+  map.addLayer({id:'spots-t',type:'symbol',source:'spots',layout:{'icon-image':['concat',['get','ic'],'_11'],'icon-allow-overlap':true,'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':14,'text-anchor':'top','text-offset':[0,1.1],'text-allow-overlap':false,'text-optional':true},paint:{'text-color':['case',['==',['get','k'],'ad'],'#8a6d00','#1b1f21'],'text-halo-color':'#fff','text-halo-width':2}});
   map.addSource('nb',{type:'geojson',data:nbData});
   map.addLayer({id:'nb-l',type:'line',source:'nb',paint:{'line-color':'#555','line-width':1.5,'line-dasharray':[3,2],'line-opacity':nbOn?.7:0}});
   map.addSource('ans',{type:'geojson',data:ansData});
@@ -272,7 +282,7 @@ function judge(){
   return{iou:u?i1/u:0,dice:ta+tb?2*i1/(ta+tb):0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
 }
 const BANDS=[95,90,80,70,60,50,40,30,20,10,0];
-const titlesFor=()=>[['あなたこそが団地マスター'],['町内会の裏ボスおばちゃん'],['ベテランタクシー運転手'],['回覧板マスター'],['町内会の副会長'],['町内会の副会長'],['地元のおじさん'],['チャリ通の高校生'],['新人ウーバー配達員'],['降りるバス停を間違えた人'],['旅行先間違えた人']];
+const titlesFor=()=>[['あなたこそが団地マスター'],['町内会の裏ボスおばちゃん'],['ベテランタクシー運転手'],['回覧板マスター'],['町内会の副会長'],['井戸端会議ママ'],['地元のおじさん'],['チャリ通の高校生'],['新人ウーバー配達員'],['降りるバス停を間違えた人'],['旅行先間違えた人']];
 const titleOf=s=>{const t=titlesFor()[BANDS.findIndex(b=>s>=b)];return t[Math.random()*t.length|0]};
 const colorOf=s=>s>=90?'#c9a227':s>=75?'#d8321f':s>=55?'#e8752a':s>=35?'#2f6bff':'#6b7477';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
