@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Danchi Guessor｜団地の境界線当てゲーム</title>
-<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.png" type="image/png"><link rel="apple-touch-icon" href="icon-180.png">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
 *{box-sizing:border-box}
@@ -38,7 +38,9 @@ button:disabled{opacity:.4;cursor:default}
 table{width:100%;border-collapse:collapse;margin:10px 0}td{padding:6px 2px;border-bottom:1px solid #eee}td.n{text-align:right;font-weight:700}
 .tag{background:#d8321f;color:#fff;font-weight:900;padding:2px 10px;border-radius:8px;font-size:15px;pointer-events:none}
 [hidden]{display:none!important}
-#bgmBtn{position:fixed;right:12px;bottom:76px;z-index:2100;min-height:40px;padding:0 14px;border-radius:99px;box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:14px}
+#bgmBtn{min-height:40px;padding:0 12px;border-radius:99px;font-size:14px;white-space:nowrap}
+@media (max-width:600px){header{padding:8px 10px;gap:6px 8px}header b{font-size:20px}header b small{font-size:13px}.timer{font-size:19px;padding:1px 10px}header .sp{flex:0 0 100%;height:0}#layer{flex:1;min-width:0;min-height:40px;padding:0 8px}
+  footer{padding:8px 10px;gap:8px}#msg{flex:1 1 100%;min-width:0;font-size:13px}footer button{flex:1;padding:0 6px}#pass{top:8px;right:8px}}
 .chal{background:#fff3f0;border:1.5px solid #d8321f;border-radius:12px;padding:12px;margin-bottom:12px}
 .vs{font-size:20px;font-weight:900;color:#d8321f}
 input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;border:1.5px solid #ccc}
@@ -51,12 +53,12 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 </style></head><body>
 <div id="app">
 <header><b><em id="qName">—</em><small id="qWard"></small> を囲め</b><span class="sub" id="qNo"></span><span id="timer" class="timer">3:00</span><span class="sp"></span>
-<select id="layer" aria-label="地図の種類"><option value="liberty">地図：カラフル</option><option value="positron">地図：シンプル</option><option value="bright">地図：くっきり</option><option value="photo">航空写真＋道路名</option><option value="old">昔の航空写真（1974〜78年）</option></select></header>
+<select id="layer" aria-label="地図の種類"><option value="liberty">地図：カラフル</option><option value="positron">地図：シンプル</option><option value="bright">地図：くっきり</option><option value="photo">航空写真＋道路名</option><option value="old">昔の航空写真（1974〜78年）</option></select><button id="bgmBtn" type="button">♪ BGM</button></header>
 <div id="mapwrap"><div id="map"></div><div id="pop" hidden></div><button id="pass" type="button" hidden>パス</button></div>
 <footer><span id="msg">境界の角をクリックして点を打つ。最初の点を押すと閉じます。</span>
 <button id="undo">1つ戻す</button><button id="clear">全部消す</button><button class="go" id="ok" disabled>これで決定</button></footer>
 </div>
-<button id="bgmBtn" type="button">♪ BGM</button><div id="ov"><div class="card" id="card"><h1>地図を読み込み中…</h1></div></div>
+<div id="ov"><div class="card" id="card"><h1>地図を読み込み中…</h1></div></div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
 {
@@ -89,7 +91,8 @@ function bgmTick(){const S=SONGS[BGM.song];if(!S||!BGM.ctx)return;const sp=60/S.
     BGM.next+=sp;BGM.step++}}
 function bgmPlay(name){BGM.song=name;if(!BGM.on)return;bgmInit();if(!BGM.ctx)return;BGM.ctx.resume();BGM.step=0;BGM.next=BGM.ctx.currentTime+.05;clearInterval(BGM.timer);BGM.timer=setInterval(bgmTick,60)}
 function bgmStop(){clearInterval(BGM.timer);BGM.timer=null}
-function bgmToggle(){BGM.on=!BGM.on;try{localStorage.setItem('dgBgm',BGM.on?'on':'off')}catch(e){}$('bgmBtn').textContent=BGM.on?'♪ BGM オン':'♪ BGM オフ';BGM.on?bgmPlay(BGM.song||'title'):bgmStop()}
+function bgmToggle(){BGM.on=!BGM.on;try{localStorage.setItem('dgBgm',BGM.on?'on':'off')}catch(e){}bgmLabel();BGM.on?bgmPlay(BGM.song||'title'):bgmStop()}
+function bgmLabel(){for(const id of ['bgmBtn','bgmBtn2'])if($(id))$(id).textContent=BGM.on?'♪ BGM オン':'♪ BGM オフ'}
 document.addEventListener('pointerdown',()=>{if(BGM.on&&!BGM.timer&&BGM.song)bgmPlay(BGM.song)},{once:false});
 const disp=k=>k.split(' ').pop(),ward=k=>k.includes(' ')?k.split(' ')[0]:'';
 const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/'+((()=>{try{const v=localStorage.getItem('dgMap');return v==='positron'||v==='bright'?v:'liberty'}catch(e){return 'liberty'}})()),center:REG.kagoshima.c,zoom:13,doubleClickZoom:false,dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true,customAttribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a> | 境界：<a href="https://github.com/geolonia/japanese-boundaries" target="_blank">Geolonia</a>'}});
@@ -98,6 +101,9 @@ map.touchZoomRotate.disableRotation();
 const BASE='https://raw.githubusercontent.com/geolonia/japanese-boundaries/master/data/japan/';
 const TOWNS={};
 const files=t=>t.c.split(';').flatMap(g=>{const [a,b]=g.split(':');return b.split(',').map(s=>BASE+t.p+'/'+a+s+'.geojson')});
+const SPOTS={};
+const loadSpots=r=>(SPOTS[r]||(SPOTS[r]=fetch('spots-'+r+'.json').then(x=>x.json()).then(rows=>fc(rows.map(([name,x,y,k])=>({type:'Feature',properties:{name,k:k||''},geometry:{type:'Point',coordinates:[x,y]}}))))))
+  .then(d=>{if(r===region){spotData=d;const s=map.getSource('spots');if(s)s.setData(d)}}).catch(()=>{});
 const WARDS={};
 const loadWards=r=>WARDS[r]||(WARDS[r]=fetch('wards-'+r+'.json').then(x=>x.json()));
 const loadTown=k=>{if(TOWNS[k])return Promise.resolve(TOWNS[k]);const t=DATA[region].map[k];
@@ -111,7 +117,7 @@ const sb=(path,opt={})=>fetch(SB_URL+'/rest/v1/'+path,{...opt,headers:{apikey:SB
 // STG（/stg/ 以下で開いたとき）はランキングを別テーブルに分け、画面に目印を出す
 const STG=/\/stg\//.test(location.pathname),TBL=STG?'scores_stg':'scores';
 if(STG){document.title='[STG] '+document.title;const m=document.createElement('meta');m.name='robots';m.content='noindex';document.head.appendChild(m);
-  const t=document.createElement('div');t.textContent='STG（テスト用）';t.style.cssText='position:fixed;left:0;bottom:0;z-index:3000;background:#2f6bff;color:#fff;font-weight:900;font-size:12px;padding:2px 10px;border-top-right-radius:8px;pointer-events:none';document.body.appendChild(t)}
+  const t=document.createElement('div');t.textContent='STG（テスト用）';t.style.cssText='position:fixed;left:50%;top:0;transform:translateX(-50%);z-index:3000;background:#2f6bff;color:#fff;font-weight:900;font-size:10px;line-height:1.2;padding:1px 10px;border-radius:0 0 8px 8px;pointer-events:none;white-space:nowrap';document.body.appendChild(t)}
 // 名前の持ち主を見分けるための合言葉（この端末だけに保存。同じ名前を他の人が使えないようにする）
 let TOKEN='';try{TOKEN=localStorage.getItem('dgTok')||''}catch(e){}
 if(TOKEN.length<16){TOKEN=(crypto.randomUUID?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join(''));try{localStorage.setItem('dgTok',TOKEN)}catch(e){}}
@@ -125,7 +131,7 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random(
 const fc=f=>({type:'FeatureCollection',features:f});
 const ringLL=r=>{const c=r.map(p=>[p[1],p[0]]);c.push(c[0]);return c};
 
-let mapStyle='liberty',ansData=fc([]),nbData=fc([]),nbOn=false;try{mapStyle=localStorage.getItem('dgMap')||'liberty'}catch(e){}if(/^gsi/.test(mapStyle))mapStyle='liberty';
+let mapStyle='liberty',ansData=fc([]),nbData=fc([]),spotData=fc([]),nbOn=false;try{mapStyle=localStorage.getItem('dgMap')||'liberty'}catch(e){}if(/^gsi/.test(mapStyle))mapStyle='liberty';
 const OFM='https://tiles.openfreemap.org/styles/';
 const RASTER={photo:['https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',18],gsistd:['https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',18],gsipale:['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',18],old:['https://cyberjapandata.gsi.go.jp/xyz/gazo1/{z}/{x}/{y}.jpg',17]};
 function setupLayers(){
@@ -133,7 +139,7 @@ function setupLayers(){
   for(const l of map.getStyle().layers){
     if(l.type!=='symbol')continue;
     if(!firstSym)firstSym=l.id;
-    if(l['source-layer']==='place'||/^(place|label_)/.test(l.id)){map.setLayoutProperty(l.id,'visibility','none');continue}
+    if(['place','poi','aerodrome_label'].includes(l['source-layer'])||/^(place|label_)/.test(l.id)){map.setLayoutProperty(l.id,'visibility','none');continue}
     if(map.getLayoutProperty(l.id,'text-field'))map.setLayoutProperty(l.id,'text-field',['coalesce',['get','name:ja'],['get','name']]);
   }
   const R=RASTER[mapStyle];
@@ -141,6 +147,10 @@ function setupLayers(){
     const gsi=mapStyle.startsWith('gsi');
     map.addLayer({id:'ras',type:'raster',source:'ras'},gsi?undefined:firstSym);
     if(gsi)for(const l of map.getStyle().layers)if(l.type==='symbol')map.setLayoutProperty(l.id,'visibility','none')}
+  // 有名スポット（spots-地域.json）。お店などの細かい名前は消して、これだけをヒントとして出す。4番目に'ad'を入れると広告スポットとして色を変える
+  map.addSource('spots',{type:'geojson',data:spotData});
+  map.addLayer({id:'spots-c',type:'circle',source:'spots',paint:{'circle-radius':5,'circle-color':['case',['==',['get','k'],'ad'],'#c9a227','#1b1f21'],'circle-stroke-color':'#fff','circle-stroke-width':2}});
+  map.addLayer({id:'spots-t',type:'symbol',source:'spots',layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':14,'text-anchor':'top','text-offset':[0,.6],'text-allow-overlap':false,'text-optional':true},paint:{'text-color':['case',['==',['get','k'],'ad'],'#8a6d00','#1b1f21'],'text-halo-color':'#fff','text-halo-width':2}});
   map.addSource('nb',{type:'geojson',data:nbData});
   map.addLayer({id:'nb-l',type:'line',source:'nb',paint:{'line-color':'#555','line-width':1.5,'line-dasharray':[3,2],'line-opacity':nbOn?.7:0}});
   map.addSource('ans',{type:'geojson',data:ansData});
@@ -155,23 +165,25 @@ function setupLayers(){
 let started=false;
 map.on('style.load',()=>{setupLayers();if(!started){started=true;startScreen()}});
 const styleUrl=v=>OFM+(v==='positron'||v==='bright'?v:'liberty');
-$('layer').value=mapStyle;$('bgmBtn').textContent=BGM.on?'♪ BGM オン':'♪ BGM オフ';$('bgmBtn').onclick=bgmToggle;
+$('layer').value=mapStyle;bgmLabel();$('bgmBtn').onclick=bgmToggle;
 $('layer').onchange=e=>{mapStyle=e.target.value;try{localStorage.setItem('dgMap',mapStyle)}catch(x){}map.setStyle(styleUrl(mapStyle),{diff:false})};
 
 function begin(c,list,m){spare=[];passMax=passLeft=0;bgmPlay('game');cat=c;region=catOf(c)[1];mode=m;$('ov').hidden=true;$('qName').textContent='読み込み中…';
-  loadRegion(region).then(d=>{qs=typeof list==='function'?list(d):list;qi=0;results=[];newRound()}).catch(()=>{$('ov').hidden=false;$('card').innerHTML='<h1>町のデータを読み込めませんでした</h1><p>ページを開き直してください。</p>'})}
+  loadSpots(region);loadRegion(region).then(d=>{qs=typeof list==='function'?list(d):list;qi=0;results=[];newRound()}).catch(()=>{$('ov').hidden=false;$('card').innerHTML='<h1>町のデータを読み込めませんでした</h1><p>ページを開き直してください。</p>'})}
 function startScreen(){
   $('ov').hidden=false;BGM.song='title';if(BGM.timer)bgmPlay('title');
   const b=best[lastCat];
   $('card').innerHTML=`<h1>Danchi Guessor</h1><p style="margin:-4px 0 8px;font-weight:700;color:#d8321f">ダンチゲッサー｜団地の境界線当てゲーム</p>
-  <p>道路やお店・学校の名前を手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>。</p>
+  <p>道路の名前や有名なスポットを手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>。</p>
   <div class="opt"><label for="setSel">出題エリア</label><select id="setSel">${CATS.map(c=>`<option value="${c[0]}"${c[0]===lastCat?' selected':''}>${c[2]}</option>`).join('')}</select></div>
   <div class="opt"><label for="nSel">問題数</label><select id="nSel">${['5','10','20'].map(n=>`<option${n===lastN?' selected':''}>${n}</option>`).join('')}</select></div>
-  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName||randName())}" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">別の名前</button></div><p id="nmMsg" class="note" style="margin:4px 0 0;color:#d8321f"></p></div>
+  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName)}" placeholder="ニックネームを入力" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">おまかせ</button></div><p id="nmMsg" class="note" style="margin:4px 0 0;color:#d8321f"></p></div>
   <p id="bestLine">${b?`このエリアの最高：1問あたり平均${b}点`:''}</p>
   <button class="go" id="go" style="width:100%">スタート</button>
   <button id="rankBtn" style="width:100%;margin-top:10px">ランキングを見る</button>
-  <p class="note">お店や建物の名前は拡大すると増えます。バス停や施設名に町名が入っていることもあるので、それも手がかりです。</p>`;
+  <p class="note">地図に出ているのは、道路の名前と、駅や名所などの有名なスポットだけです。そこからの位置関係で境界を推理してください。</p>
+  <button id="bgmBtn2" type="button" style="width:100%;margin-top:4px;min-height:40px;font-size:14px"></button>`;
+  bgmLabel();$('bgmBtn2').onclick=bgmToggle;
   $('setSel').onchange=()=>{const v=best[$('setSel').value];$('bestLine').textContent=v?`このエリアの最高：1問あたり平均${v}点`:''};
   if(challenge){$('card').insertAdjacentHTML('afterbegin',`<div class="chal"><b>挑戦状が届きました</b><br>${challenge.name?esc(challenge.name)+'さんから':'友だちから'}・${esc(catOf(challenge.cat)[2])}・${challenge.idx.length}問${challenge.score!=null?`・相手は<b>${challenge.score}点</b>`:''}<br><button class="go" id="goChal" style="width:100%;margin-top:8px">この問題で勝負する</button></div>`);
     $('goChal').onclick=()=>begin(challenge.cat,d=>challenge.idx.map(i=>d.keys[i]).filter(Boolean),'chal')}
