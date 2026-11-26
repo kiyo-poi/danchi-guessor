@@ -130,7 +130,7 @@ let TOKEN='';try{TOKEN=localStorage.getItem('dgTok')||''}catch(e){}
 if(TOKEN.length<16){TOKEN=(crypto.randomUUID?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join(''));try{localStorage.setItem('dgTok',TOKEN)}catch(e){}}
 const params=new URLSearchParams(location.search);
 let challenge=null;{const q=params.get('q');if(q){challenge={cat:catOf(params.get('c')||'kgs')[0],idx:q.split('.').map(Number),score:params.has('s')?+params.get('s'):null,name:(params.get('n')||'').slice(0,20)}}}
-let myName='',lastCat='kgsc',lastN='5';try{myName=localStorage.getItem('kgsName')||'';lastCat=localStorage.getItem('dgCat')||lastCat;lastN=localStorage.getItem('dgN')||lastN}catch(e){}
+let myName='',lastCat='kgsc',lastN='5';try{myName=localStorage.getItem('kgsName')||'';lastN=localStorage.getItem('dgN')||lastN}catch(e){}
 let nbTags=[],spare=[],passMax=0,passLeft=0;
 const LIMIT=120;let timerId=null,endAt=0;let region='kagoshima',cat='kgsc',mode='',qs=[],qi=0,results=[],key='',pts=[],closed=false,revealed=false,best={},tag=null,firstSym;
 try{best=JSON.parse(localStorage.getItem('dgBest')||'{}')}catch(e){}
