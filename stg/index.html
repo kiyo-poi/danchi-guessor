@@ -49,10 +49,17 @@ input{font:inherit;width:100%;min-height:44px;padding:0 12px;border-radius:10px;
 .tab.on{border-color:#d8321f;color:#d8321f}tr.me td{background:#fff3f0;font-weight:700}
 #ov .card{max-height:92vh;overflow:auto}
 .note{font-size:12px;color:#777;margin-top:12px}
+.hero{display:flex;gap:12px;align-items:center;margin-bottom:10px}.hero img{width:60px;height:60px;border-radius:14px;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}.hero h1{margin:0!important;font-size:26px!important}.hero p{margin:2px 0 0;font-size:13px;font-weight:700;color:#d8321f}
+.lead{margin:0 0 8px}.facts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}.facts span{background:#f3f3f1;border-radius:99px;padding:2px 10px;font-size:13px;font-weight:700;color:#444}
+.seg{display:flex;gap:8px}.seg button{flex:1}.seg button.on{border-color:#d8321f;background:#fff3f0;color:#d8321f}
+.big2{width:100%;min-height:56px;font-size:20px;margin-top:6px;box-shadow:0 4px 0 #a82416}.big2:active{transform:translateY(2px);box-shadow:0 2px 0 #a82416}
+.bestline{margin:8px 0 0;font-size:13px;color:#666;text-align:center}.bestline:empty{display:none}
+.tools{display:flex;gap:8px;margin-top:12px}.tools button{flex:1;font-size:14px;padding:0 6px}
+.how{margin-top:12px;font-size:13px;color:#555}.how summary{cursor:pointer;font-weight:700;padding:6px 0}.how ol{margin:4px 0 0;padding-left:20px}.how li{margin:3px 0}
 #pass{position:absolute;top:10px;right:10px;z-index:4;min-height:40px;padding:0 14px;border-radius:99px;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,.2)}
 </style></head><body>
 <div id="app">
-<header><b><em id="qName">—</em><small id="qWard"></small> を囲め</b><span class="sub" id="qNo"></span><span id="timer" class="timer">3:00</span><span class="sp"></span>
+<header><b><em id="qName">—</em><small id="qWard"></small> を囲め</b><span class="sub" id="qNo"></span><span id="timer" class="timer">2:00</span><span class="sp"></span>
 <select id="layer" aria-label="地図の種類"><option value="liberty">地図：カラフル</option><option value="positron">地図：シンプル</option><option value="bright">地図：くっきり</option><option value="photo">航空写真＋道路名</option><option value="old">昔の航空写真（1974〜78年）</option></select><button id="bgmBtn" type="button">♪ BGM</button></header>
 <div id="mapwrap"><div id="map"></div><div id="pop" hidden></div><button id="pass" type="button" hidden>パス</button></div>
 <footer><span id="msg">境界の角をクリックして点を打つ。最初の点を押すと閉じます。</span>
@@ -125,7 +132,7 @@ const params=new URLSearchParams(location.search);
 let challenge=null;{const q=params.get('q');if(q){challenge={cat:catOf(params.get('c')||'kgs')[0],idx:q.split('.').map(Number),score:params.has('s')?+params.get('s'):null,name:(params.get('n')||'').slice(0,20)}}}
 let myName='',lastCat='kgsc',lastN='5';try{myName=localStorage.getItem('kgsName')||'';lastCat=localStorage.getItem('dgCat')||lastCat;lastN=localStorage.getItem('dgN')||lastN}catch(e){}
 let nbTags=[],spare=[],passMax=0,passLeft=0;
-const LIMIT=180;let timerId=null,endAt=0;let region='kagoshima',cat='kgsc',mode='',qs=[],qi=0,results=[],key='',pts=[],closed=false,revealed=false,best={},tag=null,firstSym;
+const LIMIT=120;let timerId=null,endAt=0;let region='kagoshima',cat='kgsc',mode='',qs=[],qi=0,results=[],key='',pts=[],closed=false,revealed=false,best={},tag=null,firstSym;
 try{best=JSON.parse(localStorage.getItem('dgBest')||'{}')}catch(e){}
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 const fc=f=>({type:'FeatureCollection',features:f});
@@ -173,16 +180,17 @@ function begin(c,list,m){spare=[];passMax=passLeft=0;bgmPlay('game');cat=c;regio
 function startScreen(){
   $('ov').hidden=false;BGM.song='title';if(BGM.timer)bgmPlay('title');
   const b=best[lastCat];
-  $('card').innerHTML=`<h1>Danchi Guessor</h1><p style="margin:-4px 0 8px;font-weight:700;color:#d8321f">ダンチゲッサー｜団地の境界線当てゲーム</p>
-  <p>道路の名前や有名なスポットを手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>。</p>
+  $('card').innerHTML=`<div class="hero"><img src="icon-180.png" alt=""><div><h1>Danchi Guessor</h1><p>団地の境界線当てゲーム</p></div></div>
+  <p class="lead">地図の上で町の境界を囲んで、本物とどれだけ重なるかを競います。</p>
+  <div class="facts"><span>1問 2分</span><span>100点満点</span><span>町名は地図から消去</span></div>
   <div class="opt"><label for="setSel">出題エリア</label><select id="setSel">${CATS.map(c=>`<option value="${c[0]}"${c[0]===lastCat?' selected':''}>${c[2]}</option>`).join('')}</select></div>
-  <div class="opt"><label for="nSel">問題数</label><select id="nSel">${['5','10','20'].map(n=>`<option${n===lastN?' selected':''}>${n}</option>`).join('')}</select></div>
+  <div class="opt"><label>問題数</label><input type="hidden" id="nSel" value="${['5','10','20'].includes(lastN)?lastN:'5'}"><div class="seg" id="nSeg">${['5','10','20'].map(n=>`<button type="button" data-n="${n}">${n}問</button>`).join('')}</div></div>
   <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName)}" placeholder="ニックネームを入力" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">おまかせ</button></div><p id="nmMsg" class="note" style="margin:4px 0 0;color:#d8321f"></p></div>
-  <p id="bestLine">${b?`このエリアの最高：1問あたり平均${b}点`:''}</p>
-  <button class="go" id="go" style="width:100%">スタート</button>
-  <button id="rankBtn" style="width:100%;margin-top:10px">ランキングを見る</button>
-  <p class="note">地図に出ているのは、道路の名前と、駅や名所などの有名なスポットだけです。そこからの位置関係で境界を推理してください。</p>
-  <button id="bgmBtn2" type="button" style="width:100%;margin-top:4px;min-height:40px;font-size:14px"></button>`;
+  <button class="go big2" id="go">スタート</button>
+  <p id="bestLine" class="bestline">${b?`このエリアの最高：1問あたり平均${b}点`:''}</p>
+  <div class="tools"><button id="rankBtn" type="button">🏆 ランキング</button><button id="bgmBtn2" type="button"></button></div>
+  <details class="how"><summary>遊び方</summary><ol><li>出題された町の境界だと思う場所の角を、地図の上で順にタップします。</li><li>最初の点をもう一度タップすると線が閉じます。「これで決定」で採点です。</li><li>手がかりは道路の名前と、駅や名所などの有名なスポットだけ。そこからの位置関係で推理してください。</li><li>わからない町は「パス」で別の町に替えられます（5問につき1回）。</li></ol></details>`;
+  const segUpd=()=>{for(const x of $('nSeg').children)x.classList.toggle('on',x.dataset.n===$('nSel').value)};segUpd();for(const x of $('nSeg').children)x.onclick=()=>{$('nSel').value=x.dataset.n;segUpd()};
   bgmLabel();$('bgmBtn2').onclick=bgmToggle;
   $('setSel').onchange=()=>{const v=best[$('setSel').value];$('bestLine').textContent=v?`このエリアの最高：1問あたり平均${v}点`:''};
   if(challenge){$('card').insertAdjacentHTML('afterbegin',`<div class="chal"><b>挑戦状が届きました</b><br>${challenge.name?esc(challenge.name)+'さんから':'友だちから'}・${esc(catOf(challenge.cat)[2])}・${challenge.idx.length}問${challenge.score!=null?`・相手は<b>${challenge.score}点</b>`:''}<br><button class="go" id="goChal" style="width:100%;margin-top:8px">この問題で勝負する</button></div>`);
@@ -243,7 +251,7 @@ function judge(){
     for(const r of rings){r.forEach((p,i)=>{const q=f(p);i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1])});x.closePath()}x.fill('evenodd');return x.getImageData(0,0,N,N).data};
   const A=mk(t),B=mk([pts]);let i1=0,u=0,ta=0,tb=0;
   for(let i=3;i<A.length;i+=4){const a=A[i]>127,b=B[i]>127;if(a&&b)i1++;if(a||b)u++;if(a)ta++;if(b)tb++}
-  return{iou:u?i1/u:0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
+  return{iou:u?i1/u:0,dice:ta+tb?2*i1/(ta+tb):0,cover:ta?i1/ta:0,extra:tb?(tb-i1)/tb:0};
 }
 const BANDS=[90,75,55,35,10,0];
 const titlesFor=()=>{const L=REG[region].local;return[['団地のおばちゃん','何でも知ってる団地のおばちゃん','生き字引のおばあちゃん','在任30年の自治会長',L[0]],['井戸端会議の議長','回覧板マスター','ベテラン新聞配達員','町内会の副会長',L[1]],['地元のおじさん','ゴミ当番ベテラン','犬の散歩で顔が広い人','夏祭りの焼きそば係'],['引っ越して3年目の人','宅配便の新人ドライバー','回覧板を止めがちな人',L[2]],['引っ越してきたばかりの人','表札を見て回る人','観光客','隣の町の人'],['迷子の配達員','カーナビ頼みの人','よそから来た人','降りるバス停を間違えた人']]};
@@ -265,7 +273,7 @@ function showNeighbors(k){
 }
 function submit(timeout){
   clearInterval(timerId);
-  const r=pts.length>=3?judge():{iou:0,cover:0,extra:0},s=Math.round(r.iou*100);results.push({name:key,s});revealed=true;closed=true;redraw();
+  const r=pts.length>=3?judge():{iou:0,dice:0,cover:0,extra:0},s=Math.round(r.dice*100);results.push({name:key,s});revealed=true;closed=true;redraw();
   ansData=fc(TOWNS[key].map(r=>({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ringLL(r)]}})));map.getSource('ans').setData(ansData);
   if(!reduce){let k=0;const a=()=>{k=Math.min(1,k+.04);map.setPaintProperty('ans-f','fill-opacity',.22*k);map.setPaintProperty('ans-l','line-width',1+4*k);if(k<1)requestAnimationFrame(a)};map.setPaintProperty('ans-f','fill-opacity',0);setTimeout(a,700)}
   setTimeout(()=>showNeighbors(key),reduce?0:1500);
@@ -284,8 +292,8 @@ function showRanking(c,n,me,myTot){
   $('card').innerHTML=`<h1>ランキング</h1><div class="opt"><select id="rkCat" aria-label="エリア">${CATS.map(x=>`<option value="${x[0]}"${x[0]===c?' selected':''}>${x[2]}</option>`).join('')}</select></div><div class="row">${tabs}</div><div id="rk">読み込み中…</div><button id="back" style="width:100%;margin-top:10px">戻る</button>`;
   $('back').onclick=startScreen;$('rkCat').onchange=()=>showRanking($('rkCat').value,n);for(const b of document.querySelectorAll('.tab'))b.onclick=()=>showRanking($('rkCat').value,+b.dataset.n);
   sb(`${TBL}?select=name,total,created_at&cat=eq.${c}&n=eq.${n}&order=total.desc,created_at.asc&limit=30`).then(rows=>{
-    $('rk').innerHTML=rows.length?`<table>${rows.map((r,i)=>`<tr${me&&r.name===me?' class="me"':''}><td>${i+1}位</td><td>${esc(r.name)}</td><td class="n">${r.total}点</td></tr>`).join('')}</table>`:'<p>まだ誰も登録していません。1番乗りのチャンス！</p>'})
-  .catch(()=>{$('rk').textContent='ランキングを読み込めませんでした'});
+    if(!$('rk'))return;$('rk').innerHTML=rows.length?`<table>${rows.map((r,i)=>`<tr${me&&r.name===me?' class="me"':''}><td>${i+1}位</td><td>${esc(r.name)}</td><td class="n">${r.total}点</td></tr>`).join('')}</table>`:'<p>まだ誰も登録していません。1番乗りのチャンス！</p>'})
+  .catch(()=>{if($('rk'))$('rk').textContent='ランキングを読み込めませんでした'});
 }
 function finish(){$('pop').hidden=true;bgmPlay('title');
   const tot=results.reduce((a,b)=>a+b.s,0),avg=Math.round(tot/results.length),nb=avg>(best[cat]||0);if(nb){best[cat]=avg;try{localStorage.setItem('dgBest',JSON.stringify(best))}catch(e){}}
