@@ -112,6 +112,9 @@ const sb=(path,opt={})=>fetch(SB_URL+'/rest/v1/'+path,{...opt,headers:{apikey:SB
 const STG=/\/stg\//.test(location.pathname),TBL=STG?'scores_stg':'scores';
 if(STG){document.title='[STG] '+document.title;const m=document.createElement('meta');m.name='robots';m.content='noindex';document.head.appendChild(m);
   const t=document.createElement('div');t.textContent='STG（テスト用）';t.style.cssText='position:fixed;left:0;bottom:0;z-index:3000;background:#2f6bff;color:#fff;font-weight:900;font-size:12px;padding:2px 10px;border-top-right-radius:8px;pointer-events:none';document.body.appendChild(t)}
+// 名前の持ち主を見分けるための合言葉（この端末だけに保存。同じ名前を他の人が使えないようにする）
+let TOKEN='';try{TOKEN=localStorage.getItem('dgTok')||''}catch(e){}
+if(TOKEN.length<16){TOKEN=(crypto.randomUUID?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join(''));try{localStorage.setItem('dgTok',TOKEN)}catch(e){}}
 const params=new URLSearchParams(location.search);
 let challenge=null;{const q=params.get('q');if(q){challenge={cat:catOf(params.get('c')||'kgs')[0],idx:q.split('.').map(Number),score:params.has('s')?+params.get('s'):null,name:(params.get('n')||'').slice(0,20)}}}
 let myName='',lastCat='kgsc',lastN='5';try{myName=localStorage.getItem('kgsName')||'';lastCat=localStorage.getItem('dgCat')||lastCat;lastN=localStorage.getItem('dgN')||lastN}catch(e){}
@@ -164,7 +167,7 @@ function startScreen(){
   <p>道路やお店・学校の名前を手がかりに、出題された町の境界の角をクリックして囲みます。町名は地図から消してあります。本物とどれだけ重なるかで100点満点。<b>1問3分</b>。</p>
   <div class="opt"><label for="setSel">出題エリア</label><select id="setSel">${CATS.map(c=>`<option value="${c[0]}"${c[0]===lastCat?' selected':''}>${c[2]}</option>`).join('')}</select></div>
   <div class="opt"><label for="nSel">問題数</label><select id="nSel">${['5','10','20'].map(n=>`<option${n===lastN?' selected':''}>${n}</option>`).join('')}</select></div>
-  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName||randName())}" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">別の名前</button></div></div>
+  <div class="opt"><label for="nm0">ニックネーム（ランキングに載ります）</label><div class="row" style="margin-top:0"><input id="nm0" maxlength="20" value="${esc(myName||randName())}" style="flex:3"><button id="reroll" type="button" style="flex:1;padding:0 8px">別の名前</button></div><p id="nmMsg" class="note" style="margin:4px 0 0;color:#d8321f"></p></div>
   <p id="bestLine">${b?`このエリアの最高：1問あたり平均${b}点`:''}</p>
   <button class="go" id="go" style="width:100%">スタート</button>
   <button id="rankBtn" style="width:100%;margin-top:10px">ランキングを見る</button>
@@ -174,9 +177,15 @@ function startScreen(){
     $('goChal').onclick=()=>begin(challenge.cat,d=>challenge.idx.map(i=>d.keys[i]).filter(Boolean),'chal')}
   $('rankBtn').onclick=()=>showRanking($('setSel').value,+$('nSel').value);
   $('reroll').onclick=()=>{$('nm0').value=randName()};
-  const needName=()=>{const v=$('nm0').value.trim().slice(0,20);if(!v){$('nm0').focus();$('nm0').style.borderColor='#d8321f';$('nm0').placeholder='ニックネームを入れてからスタート';return false}myName=v;try{localStorage.setItem('kgsName',v)}catch(e){}return true};
-  if($('goChal')){const g=$('goChal').onclick;$('goChal').onclick=()=>{if(needName())g()}}
-  $('go').onclick=()=>{if(!needName())return;const c=$('setSel').value,n=$('nSel').value;lastCat=c;lastN=n;try{localStorage.setItem('dgCat',c);localStorage.setItem('dgN',n)}catch(e){}
+  let checking=false;
+  const needName=async()=>{const v=$('nm0').value.trim().slice(0,20);if(!v){$('nm0').focus();$('nm0').style.borderColor='#d8321f';$('nm0').placeholder='ニックネームを入れてからスタート';return false}
+    if(checking)return false;checking=true;$('nmMsg').textContent='名前を確認中…';let r='ok';
+    try{r=await sb('rpc/claim_name',{method:'POST',body:JSON.stringify({p_name:v,p_token:TOKEN})})}catch(e){r='ok'}checking=false;
+    if(!$('nmMsg'))return false;
+    if(r!=='ok'){$('nmMsg').textContent='「'+v+'」は他の人が使っています。別の名前にしてください。';$('nm0').style.borderColor='#d8321f';$('nm0').focus();return false}
+    $('nmMsg').textContent='';myName=v;try{localStorage.setItem('kgsName',v)}catch(e){}return true};
+  if($('goChal')){const g=$('goChal').onclick;$('goChal').onclick=async()=>{if(await needName())g()}}
+  $('go').onclick=async()=>{if(!await needName())return;const c=$('setSel').value,n=$('nSel').value;lastCat=c;lastN=n;try{localStorage.setItem('dgCat',c);localStorage.setItem('dgN',n)}catch(e){}
     begin(c,d=>{const all=shuffle(d.cat[c]||[]);spare=all.slice(+n);passMax=passLeft=Math.round(+n/5);return all.slice(0,+n)},'rank'+n)};
 }
 function bounds(rings){const b=new maplibregl.LngLatBounds();for(const r of rings)for(const p of r)b.extend([p[1],p[0]]);return b}
@@ -263,7 +272,7 @@ function showRanking(c,n,me,myTot){
   $('card').innerHTML=`<h1>ランキング</h1><div class="opt"><select id="rkCat" aria-label="エリア">${CATS.map(x=>`<option value="${x[0]}"${x[0]===c?' selected':''}>${x[2]}</option>`).join('')}</select></div><div class="row">${tabs}</div><div id="rk">読み込み中…</div><button id="back" style="width:100%;margin-top:10px">戻る</button>`;
   $('back').onclick=startScreen;$('rkCat').onchange=()=>showRanking($('rkCat').value,n);for(const b of document.querySelectorAll('.tab'))b.onclick=()=>showRanking($('rkCat').value,+b.dataset.n);
   sb(`${TBL}?select=name,total,created_at&cat=eq.${c}&n=eq.${n}&order=total.desc,created_at.asc&limit=30`).then(rows=>{
-    $('rk').innerHTML=rows.length?`<table>${rows.map((r,i)=>`<tr${me&&r.name===me&&r.total===myTot?' class="me"':''}><td>${i+1}位</td><td>${esc(r.name)}</td><td class="n">${r.total}点</td></tr>`).join('')}</table>`:'<p>まだ誰も登録していません。1番乗りのチャンス！</p>'})
+    $('rk').innerHTML=rows.length?`<table>${rows.map((r,i)=>`<tr${me&&r.name===me?' class="me"':''}><td>${i+1}位</td><td>${esc(r.name)}</td><td class="n">${r.total}点</td></tr>`).join('')}</table>`:'<p>まだ誰も登録していません。1番乗りのチャンス！</p>'})
   .catch(()=>{$('rk').textContent='ランキングを読み込めませんでした'});
 }
 function finish(){$('pop').hidden=true;bgmPlay('title');
@@ -283,8 +292,9 @@ function finish(){$('pop').hidden=true;bgmPlay('title');
     $('shareUrl').value=u.toString();$('line').href='https://line.me/R/msg/text/?'+encodeURIComponent(`Danchi Guessor（${catOf(cat)[2]}）で${tot}点だった。同じ問題で勝負！ `+u);$('shareBox').hidden=false};
   $('copy').onclick=()=>{navigator.clipboard.writeText($('shareUrl').value).then(()=>$('copy').textContent='コピーしました',()=>{$('shareUrl').select()})};
   if(/^rank(5|10|20)$/.test(mode)&&myName){$('regMsg').textContent='ランキングに登録中…';
-    sb(TBL,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:myName,total:tot,n:results.length,cat})})
-      .then(()=>sb(`${TBL}?select=id&cat=eq.${cat}&n=eq.${results.length}&total=gt.${tot}`)).then(r=>{$('regMsg').innerHTML=`<b>${esc(myName)}</b> として登録しました。現在 <b>${r.length+1}位</b>`})
+    sb('rpc/submit_score',{method:'POST',body:JSON.stringify({p_name:myName,p_token:TOKEN,p_cat:cat,p_n:results.length,p_total:tot,p_stg:STG})})
+      .then(r=>{if(r.status!=='ok'){$('regMsg').textContent='この名前は他の人が使っているため、ランキングに登録できませんでした';return}
+        $('regMsg').innerHTML=`<b>${esc(myName)}</b> ${r.best>tot?`の自己ベストは <b>${r.best}点</b> のまま`:'として登録しました'}。現在 <b>${r.rank}位</b>`})
       .catch(()=>{$('regMsg').textContent='ランキングに登録できませんでした'})}
 }
 setTimeout(()=>{if($('card').textContent.includes('読み込み中'))$('card').innerHTML='<h1>地図を読み込めませんでした</h1><p>インターネットにつながっているか確認して、ページを開き直してください。</p>'},20000);
